@@ -1,7 +1,7 @@
 package com.ryaltech;
 
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
@@ -92,25 +92,27 @@ public class AddressMapper {
 		return httpsProxyAddress;
 	}
 
-
-	public static Address fromHost(String host, boolean secure) {
-		if (host == null)
-			throw new IllegalArgumentException("host cannot be null");
-		String chunks[] = host.split(":");
-		int port = secure ? 443 : 80;
-		if (chunks.length == 2) {
-			try {
-				port = Integer.parseInt(chunks[1]);
-			} catch (NumberFormatException nfe) {
-				throw new IllegalArgumentException("Illegal port format", nfe);
+	public static Address fromUrl(String strUrl)throws IllegalArgumentException{
+		try {
+			URL url = new URL(strUrl);
+			int port = url.getPort();
+			String host = url.getHost();
+			if(null == host || "".equals(host)){
+				throw new IllegalArgumentException(String.format("host in url %s is empty", strUrl ));
 			}
-			host = chunks[0];
+			if(port == -1){
+				port = url.getDefaultPort();
+			}
+			return new Address(url.getHost(), port, "https".equals(url.getProtocol()));			
+		}catch (IllegalArgumentException ex) {
+			throw ex;
+		} catch (Exception ex) {
+			throw new IllegalArgumentException(ex);
 		}
-		if (chunks.length > 2) {
-			throw new IllegalArgumentException("Too many semicolons. Max 1");
-		}
-		return new Address(host, port, secure);
-
+		
+	}
+	public static Address fromHost(String host, boolean secure)throws IllegalArgumentException {
+		return fromUrl((secure?"https://":"http://")+host);		
 	}
 
 }
