@@ -20,7 +20,7 @@ public class Https2HttpChannelHandler extends SimpleChannelUpstreamHandler {
 			throws Exception {
 
 		final Object obj = me.getMessage();
-		// don't deal with chunks yet
+
 		if (obj instanceof HttpRequest) {
 			HttpRequest request = (HttpRequest) obj;
 			String host = request.getHeader("Host");

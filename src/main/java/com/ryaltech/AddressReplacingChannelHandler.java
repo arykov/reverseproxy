@@ -52,6 +52,15 @@ public class AddressReplacingChannelHandler extends
 					request.setUri(replacementAddress.toString() + path);
 				} 
 			}else {
+				/**
+				 * TODO: right now every connect request get https proxied. In reality there are 3 scenarios:
+				 * 1) No need to do anything. Regular https request outside
+				 * 2) https2http - the one we perform right now
+				 * 3) https2https with name replacement
+				 * 4) https2https but with man in the middle - no immideate plans to support
+				 */
+				
+				 
 				request.setUri(mapper.getHttpsProxyAddress().getHostName()
 						+ ":" + mapper.getHttpsProxyAddress().getPort());
 			}
