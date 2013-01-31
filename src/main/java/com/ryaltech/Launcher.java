@@ -139,6 +139,12 @@ public class Launcher {
 		}
     
 		
+		startServer(proxyPort, managementPort, props);
+	}
+	static HttpProxyServer httpsServer;
+	static HttpProxyServer httpServer;
+	static void startServer(int proxyPort, int managementPort, Properties props)
+			throws UnknownHostException {
 		int httpsProxyPort;
 		try{
 			httpsProxyPort = getAnyAvailablePort();
@@ -161,7 +167,7 @@ public class Launcher {
 	    	}	    	
 	    }
         
-		final HttpProxyServer httpsServer = new DefaultHttpProxyServer(httpsProxyPort,
+		httpsServer = new DefaultHttpProxyServer(httpsProxyPort,
 				(HttpResponseFilters)null, null, 
 	            new SelfSignedKeyStoreManager(), null, new NioClientSocketChannelFactory(), new HashedWheelTimer(), new ServerSocketChannelFactory(new Https2HttpChannelHandler(mapper)));
 		httpsServer.start();
@@ -169,6 +175,13 @@ public class Launcher {
 	            (HttpResponseFilters)null, null, 
 	            null, null,new NioClientSocketChannelFactory(), new HashedWheelTimer(), new ServerSocketChannelFactory(new AddressReplacingChannelHandler(mapper, false)));
 		httpServer.start();
+	}
+	static void stopServer(){
+		if(httpServer != null)
+			httpServer.stop();
+		if(httpsServer != null)
+			httpsServer.stop();
+		
 	}
 
 	private static void help() {

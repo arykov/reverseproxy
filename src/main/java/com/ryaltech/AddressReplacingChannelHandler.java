@@ -30,13 +30,14 @@ public class AddressReplacingChannelHandler extends
 		Object obj = me.getMessage();
 		if (obj instanceof HttpRequest) {
 			HttpRequest request = (HttpRequest) obj;
+			Address originalAddress = AddressMapper.fromHost(
+					request.getHeader("Host"), defaultSecure);
+			Address replacementAddress = mapper
+					.getReplacementAddress(originalAddress);
 			if (HttpMethod.CONNECT != request.getMethod()) {
 				// should we read weblogic header to determing secure?
 				// problem arises when we come back to http proxy after https
-				Address originalAddress = AddressMapper.fromHost(
-						request.getHeader("Host"), defaultSecure);
-				Address replacementAddress = mapper
-						.getReplacementAddress(originalAddress);
+				
 				if (replacementAddress != null) {
 
 					String path = request.getUri();
@@ -53,16 +54,30 @@ public class AddressReplacingChannelHandler extends
 				} 
 			}else {
 				/**
-				 * TODO: right now every connect request get https proxied. In reality there are 3 scenarios:
-				 * 1) No need to do anything. Regular https request outside
+				 * Following scenarios possible
+				 * 1) straight through 
 				 * 2) https2http - the one we perform right now
 				 * 3) https2https with name replacement
 				 * 4) https2https but with man in the middle - no immideate plans to support
 				 */
-				
-				 
-				request.setUri(mapper.getHttpsProxyAddress().getHostName()
-						+ ":" + mapper.getHttpsProxyAddress().getPort());
+				//only act if request needs to be reverse proxied
+				if (replacementAddress != null) {
+					if (replacementAddress.isSecure()) {
+						//TODO: test
+						//https2https with name replacement
+						request.setUri(replacementAddress
+								.getHost()
+								+ ":"
+								+ replacementAddress.getPort());
+
+					} else {
+						//https2http
+						request.setUri(mapper.getHttpsProxyAddress()
+								.getHostName()
+								+ ":"
+								+ mapper.getHttpsProxyAddress().getPort());
+					}
+				}
 			}
 
 		}

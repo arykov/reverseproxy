@@ -48,7 +48,12 @@
 			<version>8.1.8.v20121106</version>
 			<scope>test</scope>
 		</dependency>
-	
+		<dependency>
+			<groupId>org.apache.httpcomponents</groupId>
+			<artifactId>httpclient</artifactId>
+			<version>4.2.3</version>
+		</dependency>
+
 	</dependencies>
 	<build>
 		<plugins>
