@@ -1,7 +1,6 @@
 package com.ryaltech;
 
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.ServerSocket;
@@ -15,15 +14,13 @@ import org.littleshoot.proxy.HttpProxyServer;
 import org.littleshoot.proxy.HttpResponseFilters;
 import org.littleshoot.proxy.SelfSignedKeyStoreManager;
 
-import com.ryaltech.AddressMapper.Address;
-
 public class Launcher {
 	/**
 	 * 
 	 * @return any available listen port
 	 * @throws RuntimeException
 	 */
-	static int getAnyAvailablePort()throws RuntimeException{
+	public static int getAnyAvailablePort()throws RuntimeException{
 		ServerSocket socket = null;		
 		try {
 			socket = new ServerSocket(0);			
@@ -58,6 +55,7 @@ public class Launcher {
 		}
 	}
 
+	public static final int DEFAULT_HTTP_PROXY_PORT = 8080;
 	/**
 	 * @param args
 	 * @throws UnknownHostException 
@@ -97,10 +95,10 @@ public class Launcher {
         */
 		
 
-		int proxyPort=8080;
-		int managementPort=9090;
+		int proxyPort=DEFAULT_HTTP_PROXY_PORT;
+		int managementPort=-1;
 		
-		Properties props = null;
+		Properties props = new Properties();
 		
 		int i=0;
 
@@ -111,7 +109,7 @@ public class Launcher {
 					proxyPort = Integer.parseInt(args[++i]);
 				} else if (flag.equals("-managementPort")) {
 					managementPort = Integer.parseInt(args[++i]);
-				} else if (flag.equals("-props")) {
+				} else if (flag.equals("-propertyFile")) {
 					props = new Properties();
 					InputStream is = null;
 					try {
@@ -152,11 +150,6 @@ public class Launcher {
 		
 	    AddressMapper mapper = new AddressMapper(httpsProxyPort);
 	    
-	    if(props == null){
-			System.out.println("properties not sepcified.");
-			help();
-			System.exit(-1);
-		}
 	    for(Object key:props.keySet()){
 	    	String from = (String)key;    		
     		String to = props.getProperty(from);
@@ -179,8 +172,15 @@ public class Launcher {
 	}
 
 	private static void help() {
-		// TODO Auto-generated method stub
-		
+		System.out
+				.println("java -classpath reverseproxy-<version>.jar [-proxyPort <proxyPort>] [-managementPort <managementPort>] [-propertyFile <propertyFile>]");
+		System.out
+				.println("\t<proxyPort> - port proxy listens on. It defaults to "
+						+ DEFAULT_HTTP_PROXY_PORT);
+		System.out
+				.println("\t<managementPort> - port to start management server on.  If not specified management server will not start.");
+		System.out
+				.println("\t<propertyFile> - location to the file that contains settings.  If not specified none will be used.");
 	}
 
 }
