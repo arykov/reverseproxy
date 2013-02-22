@@ -162,7 +162,7 @@ public class Launcher {
 	    	try{
 	    		mapper.addMapping(AddressMapper.fromUrl(from),AddressMapper.fromUrl(to)); 
 	    	}catch(RuntimeException rex){
-	    		System.out.println("The following entry in the property file '%s' dis invalid.");
+	    		System.out.println("The following entry in the property file '%s' is invalid.");
 	    		System.exit(-1);	    		
 	    	}	    	
 	    }
