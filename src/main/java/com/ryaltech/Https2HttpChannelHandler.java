@@ -29,8 +29,7 @@ public class Https2HttpChannelHandler extends SimpleChannelUpstreamHandler {
 			Address replacementAddress = mapper.getReplacementAddress(originalAddress);
 			String uri = request.getUri();
 			if (!uri.startsWith("http://") && !uri.startsWith("https://"))
-				request.setUri("http://" + replacementAddress.getHost() + ":"
-						+ replacementAddress.getPort() + uri);
+				request.setUri(replacementAddress.toString() + uri);
 
 		}
 
