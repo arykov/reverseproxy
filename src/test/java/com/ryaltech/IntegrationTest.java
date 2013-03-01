@@ -34,7 +34,9 @@ import org.eclipse.jetty.server.ssl.SslSocketConnector;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
+import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -62,16 +64,20 @@ public class IntegrationTest {
 	private static Server httpsServer2;
 	private static int proxyPort;
 
-	private static final String PROXIED_URL1 = "http://1";
-	private static final String PROXIED_URL2 = "http://1:80";
-	private static final String PROXIED_URL3 = "http://1:1";
-	private static final String PROXIED_URL4 = "https://1";
-	private static final String PROXIED_URL5 = "https://1:443";
-	private static final String PROXIED_URL6 = "https://1:1";
-	private static final String PROXIED_URL7 = "https://1:2";
-	private static final String PROXIED_URL8 = "https://1:3";
-	private static final String PROXIED_URL9 = "https://2";
-	private static final String PROXIED_URL10 = "https://2:443";
+	private static final String PROXIED_URL1 = "http://test1";
+	private static final String PROXIED_URL2 = "http://test1:80";
+	private static final String PROXIED_URL3 = "http://test1:8111";
+	private static final String PROXIED_URL4 = "https://test1";
+	private static final String PROXIED_URL5 = "https://test1:443";
+	private static final String PROXIED_URL6 = "https://test1:8111";
+	private static final String PROXIED_URL7 = "https://test1:8222";
+	private static final String PROXIED_URL8 = "https://test1:8333";
+	private static final String PROXIED_URL9 = "https://test2";
+	private static final String PROXIED_URL10 = "https://test2:443";
+	
+	
+	private HttpClient directHttpClient;
+	private HttpClient proxiedHttpClient;
 
 	// private Server httpsServer1
 
@@ -137,6 +143,7 @@ public class IntegrationTest {
 	public static void startServers() throws Exception {
 		httpServer1 = startHttpJetty(new DummyHttpServlet(
 				HTTP_SERVER1_SIGNATURE));
+		
 
 		httpServer2 = startHttpJetty(new DummyHttpServlet(
 				HTTP_SERVER2_SIGNATURE));
@@ -153,8 +160,23 @@ public class IntegrationTest {
 		httpsServer2 = startHttpsJetty(new DummyHttpServlet(
 				HTTPS_SERVER2_SIGNATURE));
 
+		System.out.println(HTTP_SERVER1_SIGNATURE+" port:"+getServerPort(httpServer1));
+		System.out.println(HTTP_SERVER2_SIGNATURE+" port:"+getServerPort(httpServer2));
+		System.out.println(HTTP_SERVER3_SIGNATURE+" port:"+getServerPort(httpServer3));
+		System.out.println(HTTP_SERVER4_SIGNATURE+" port:"+getServerPort(httpServer4));
+		System.out.println(HTTP_SERVER5_SIGNATURE+" port:"+getServerPort(httpServer5));
+		System.out.println(HTTPS_SERVER1_SIGNATURE+" port:"+getServerPort(httpsServer1));
+		System.out.println(HTTPS_SERVER2_SIGNATURE+" port:"+getServerPort(httpsServer2));
 		// start proxy
-		proxyPort = Launcher.getAnyAvailablePort();
+		try{
+			proxyPort = Integer.getInteger("proxyPort").intValue();
+		}catch(Exception ex){
+			proxyPort = Launcher.getAnyAvailablePort();
+			
+		}
+		System.out.println("Proxy port: "+proxyPort);
+		
+		
 		Launcher.startServer(proxyPort, -1, new Properties() {
 			{
 				put(PROXIED_URL1, "http://localhost:"+getServerPort(httpServer1));
@@ -166,6 +188,8 @@ public class IntegrationTest {
 				put(PROXIED_URL9, "http://localhost:"+getServerPort(httpServer5));
 			}
 		});
+		return;
+
 
 	}
 
@@ -182,6 +206,18 @@ public class IntegrationTest {
 		Launcher.stopServer();
 	}
 
+	@Before
+	public void setUp()throws Exception{
+		directHttpClient = createHttpClient(null);
+		proxiedHttpClient = createHttpClient(new HttpHost("localhost",
+				proxyPort, "http"));
+		
+	}
+	@After
+	public void tearDown(){
+		directHttpClient.getConnectionManager().shutdown();
+		proxiedHttpClient.getConnectionManager().shutdown();
+	}
 	String getHttpResponse(HttpClient httpClient, String url) throws IOException, NoSuchAlgorithmException {
 
 		HttpGet request = new HttpGet(url);
@@ -284,75 +320,75 @@ public class IntegrationTest {
 	 * 
 	 * @throws Exception
 	 */
-	@Test
+	@Test	
 	public void testStartedServersDirectly() throws Exception {
 		// no proxy
-		assertServersNoTranforms(createHttpClient(null));
+		assertServersNoTranforms(directHttpClient);
 	}
 
-	@Test
+	@Test	
 	public void testProxyStraightThrough() throws Exception {
 		// through proxy
-		assertServersNoTranforms(createHttpClient(new HttpHost("localhost",
-				proxyPort, "http")));
+		assertServersNoTranforms(proxiedHttpClient);
 	}
-	
-	@Test
+
+
+	@Test	
 	public void testProxyHttp2Http()throws Exception{
-		HttpClient client = createHttpClient(new HttpHost("localhost",
-				proxyPort, "http"));
+				
 		assertEquals(
 				HTTP_SERVER1_SIGNATURE,
-				getHttpResponse(client, PROXIED_URL1));
+				getHttpResponse(proxiedHttpClient, PROXIED_URL1));
 		
 		assertEquals(
 				HTTP_SERVER1_SIGNATURE,
-				getHttpResponse(client, PROXIED_URL2));
+				getHttpResponse(proxiedHttpClient, PROXIED_URL2));
 		
 		assertEquals(
 				HTTP_SERVER2_SIGNATURE,
-				getHttpResponse(client, PROXIED_URL3));
+				getHttpResponse(proxiedHttpClient, PROXIED_URL3));
 	}
 
-	//TODO: Fix
-	@Ignore
+	
 	@Test
 	public void testProxyHttps2Https()throws Exception{
-		HttpClient client = createHttpClient(new HttpHost("localhost",
-				proxyPort, "http"));
-		assertEquals(
-				HTTPS_SERVER1_SIGNATURE,
-				getHttpResponse(client, PROXIED_URL4));
+		
+		assertServersNoTranforms(proxiedHttpClient);
+		
 		
 		assertEquals(
 				HTTPS_SERVER1_SIGNATURE,
-				getHttpResponse(client, PROXIED_URL5));
+				getHttpResponse(proxiedHttpClient, PROXIED_URL4));
+		
+		assertEquals(
+				HTTPS_SERVER1_SIGNATURE,
+				getHttpResponse(proxiedHttpClient, PROXIED_URL5));
 		
 		assertEquals(
 				HTTPS_SERVER2_SIGNATURE,
-				getHttpResponse(client, PROXIED_URL6));
+				getHttpResponse(proxiedHttpClient, PROXIED_URL6));
 	}
 
-	//TODO: Fix
-	@Ignore
-	@Test
+	
+	@Test	
 	public void testProxyHttps2Http()throws Exception{
-		HttpClient client = createHttpClient(new HttpHost("localhost",
-				proxyPort, "http"));
+		
+		
 		assertEquals(
 				HTTP_SERVER3_SIGNATURE,
-				getHttpResponse(client, PROXIED_URL7));
+				getHttpResponse(proxiedHttpClient, PROXIED_URL7));
+				
 		
 		assertEquals(
 				HTTP_SERVER4_SIGNATURE,
-				getHttpResponse(client, PROXIED_URL8));
+				getHttpResponse(proxiedHttpClient, PROXIED_URL8));
 		
 		assertEquals(
 				HTTP_SERVER5_SIGNATURE,
-				getHttpResponse(client, PROXIED_URL9));
+				getHttpResponse(proxiedHttpClient, PROXIED_URL9));
 		assertEquals(
 				HTTP_SERVER5_SIGNATURE,
-				getHttpResponse(client, PROXIED_URL10));
+				getHttpResponse(proxiedHttpClient, PROXIED_URL10));
 	}
 
 }

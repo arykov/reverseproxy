@@ -30,11 +30,13 @@ public class AddressReplacingChannelHandler extends
 		Object obj = me.getMessage();
 		if (obj instanceof HttpRequest) {
 			HttpRequest request = (HttpRequest) obj;
-			Address originalAddress = AddressMapper.fromHost(
-					request.getHeader("Host"), defaultSecure);
-			Address replacementAddress = mapper
-					.getReplacementAddress(originalAddress);
+			
 			if (HttpMethod.CONNECT != request.getMethod()) {
+				Address originalAddress = AddressMapper.fromHost(
+						request.getHeader("Host"), defaultSecure);
+				Address replacementAddress = mapper
+						.getReplacementAddress(originalAddress);
+				//TODO:
 				// should we read weblogic header to determing secure?
 				// problem arises when we come back to http proxy after https
 				
@@ -53,6 +55,10 @@ public class AddressReplacingChannelHandler extends
 					request.setUri(replacementAddress.toString() + path);
 				} 
 			}else {
+				Address originalAddress = AddressMapper.fromHost(
+						request.getHeader("Host"), true);
+				Address replacementAddress = mapper
+						.getReplacementAddress(originalAddress);
 				/**
 				 * Following scenarios possible
 				 * 1) straight through 
