@@ -43,7 +43,7 @@ public class AddressReplacingChannelHandler extends
 				if (replacementAddress != null) {
 
 					String path = request.getUri();
-					if (path.startsWith("http")) {
+					if (path.startsWith("http://") || path.startsWith("https://")) {
 						try {
 							URL url = new URL(path);
 							path = url.getPath();

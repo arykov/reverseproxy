@@ -169,7 +169,7 @@ public class Launcher {
         
 		httpsServer = new DefaultHttpProxyServer(httpsProxyPort,
 				(HttpResponseFilters)null, null, 
-	            new SelfSignedKeyStoreManager(), null, new NioClientSocketChannelFactory(), new HashedWheelTimer(), new ServerSocketChannelFactory(new Https2HttpChannelHandler(mapper)));
+	            new SelfSignedKeyStoreManager(), null, new NioClientSocketChannelFactory(), new HashedWheelTimer(), new ServerSocketChannelFactory(new AddressReplacingChannelHandler(mapper, true)));
 		httpsServer.start();
 		final HttpProxyServer httpServer = new DefaultHttpProxyServer(proxyPort, 
 	            (HttpResponseFilters)null, null, 
