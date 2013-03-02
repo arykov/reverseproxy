@@ -45,6 +45,7 @@ import org.littleshoot.proxy.SelfSignedKeyStoreManager;
 
 //@Ignore
 public class IntegrationTest {
+	
 	private static final String HTTPS_SERVER1_SIGNATURE = "httpsServer1";
 	private static final String HTTPS_SERVER2_SIGNATURE = "httpsServer2";
 
@@ -59,11 +60,14 @@ public class IntegrationTest {
 	private static Server httpServer3;
 	private static Server httpServer4;
 	private static Server httpServer5;
-
 	private static Server httpsServer1;
 	private static Server httpsServer2;
 	private static int proxyPort;
+	
+	private static AddressMapper mapper;
+	private static Properties defaultMappings;
 
+	
 	private static final String PROXIED_URL1 = "http://test1";
 	private static final String PROXIED_URL2 = "http://test1:80";
 	private static final String PROXIED_URL3 = "http://test1:8111";
@@ -167,17 +171,7 @@ public class IntegrationTest {
 		System.out.println(HTTP_SERVER5_SIGNATURE+" port:"+getServerPort(httpServer5));
 		System.out.println(HTTPS_SERVER1_SIGNATURE+" port:"+getServerPort(httpsServer1));
 		System.out.println(HTTPS_SERVER2_SIGNATURE+" port:"+getServerPort(httpsServer2));
-		// start proxy
-		try{
-			proxyPort = Integer.getInteger("proxyPort").intValue();
-		}catch(Exception ex){
-			proxyPort = Launcher.getAnyAvailablePort();
-			
-		}
-		System.out.println("Proxy port: "+proxyPort);
-		
-		
-		Launcher.startServer(proxyPort, -1, new Properties() {
+		defaultMappings = new Properties() {
 			{
 				put(PROXIED_URL1, "http://localhost:"+getServerPort(httpServer1));
 				put(PROXIED_URL3, "http://localhost:"+getServerPort(httpServer2));
@@ -186,9 +180,19 @@ public class IntegrationTest {
 				put(PROXIED_URL7, "http://localhost:"+getServerPort(httpServer3));
 				put(PROXIED_URL8, "http://localhost:"+getServerPort(httpServer4));
 				put(PROXIED_URL9, "http://localhost:"+getServerPort(httpServer5));
-			}
-		});
-		return;
+			}};
+			
+
+		// start proxy
+		try{
+			proxyPort = Integer.getInteger("proxyPort").intValue();
+		}catch(Exception ex){
+			proxyPort = Launcher.getAnyAvailablePort();			
+		}
+		System.out.println("Proxy port: "+proxyPort);
+
+		mapper = Launcher.startServer(proxyPort, -1, defaultMappings);
+		
 
 
 	}
@@ -389,6 +393,74 @@ public class IntegrationTest {
 		assertEquals(
 				HTTP_SERVER5_SIGNATURE,
 				getHttpResponse(proxiedHttpClient, PROXIED_URL10));
+	}
+	
+	@Test
+	public void testMapper()throws Exception{
+		Properties changedMappings = new Properties() {
+			{
+				put(PROXIED_URL1, "http://localhost:"+getServerPort(httpServer2));
+				put(PROXIED_URL3, "http://localhost:"+getServerPort(httpServer3));
+				put(PROXIED_URL4, "https://localhost:"+getServerPort(httpsServer2));
+				put(PROXIED_URL6, "https://localhost:"+getServerPort(httpsServer1));
+				put(PROXIED_URL7, "http://localhost:"+getServerPort(httpServer4));
+				put(PROXIED_URL8, "http://localhost:"+getServerPort(httpServer5));
+				put(PROXIED_URL9, "http://localhost:"+getServerPort(httpServer1));
+			}};
+			mapper.loadMappings(changedMappings);
+			try{
+				//http2http
+				assertEquals(
+						HTTP_SERVER2_SIGNATURE,
+						getHttpResponse(proxiedHttpClient, PROXIED_URL1));
+				
+				assertEquals(
+						HTTP_SERVER2_SIGNATURE,
+						getHttpResponse(proxiedHttpClient, PROXIED_URL2));
+				
+				assertEquals(
+						HTTP_SERVER3_SIGNATURE,
+						getHttpResponse(proxiedHttpClient, PROXIED_URL3));
+				assertServersNoTranforms(proxiedHttpClient);
+				
+				//https2https
+				assertEquals(
+						HTTPS_SERVER2_SIGNATURE,
+						getHttpResponse(proxiedHttpClient, PROXIED_URL4));
+				
+				assertEquals(
+						HTTPS_SERVER2_SIGNATURE,
+						getHttpResponse(proxiedHttpClient, PROXIED_URL5));
+				
+				assertEquals(
+						HTTPS_SERVER1_SIGNATURE,
+						getHttpResponse(proxiedHttpClient, PROXIED_URL6));
+				
+				
+				//https2http
+				assertEquals(
+						HTTP_SERVER4_SIGNATURE,
+						getHttpResponse(proxiedHttpClient, PROXIED_URL7));
+						
+				
+				assertEquals(
+						HTTP_SERVER5_SIGNATURE,
+						getHttpResponse(proxiedHttpClient, PROXIED_URL8));
+				
+				assertEquals(
+						HTTP_SERVER1_SIGNATURE,
+						getHttpResponse(proxiedHttpClient, PROXIED_URL9));
+				assertEquals(
+						HTTP_SERVER1_SIGNATURE,
+						getHttpResponse(proxiedHttpClient, PROXIED_URL10));
+				
+			}finally{
+				mapper.loadMappings(defaultMappings);
+			}
+
+		
+		
+		
 	}
 
 }

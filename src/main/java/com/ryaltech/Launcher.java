@@ -61,39 +61,6 @@ public class Launcher {
 	 * @throws UnknownHostException 
 	 */
 	public static void main(String[] args) throws UnknownHostException {
-		/*
-		final HttpResponseFilters responseFilters = new HttpResponseFilters() {
-            public HttpFilter getFilter(final String hostAndPort) {
-                return null;
-            }
-        };
-        
-        HttpRequestFilter requestFilter = new HttpRequestFilter() {
-			
-			@Override
-			public void filter(HttpRequest httpRequest) {
-				System.out.println(httpRequest);
-
-				
-			}
-		};
-        ChainProxyManager cpm = new ChainProxyManager(){
-
-			@Override
-			public String getChainProxy(HttpRequest httpRequest) {
-				//httpRequest.setUri("http://cnn.com/");
-				return null;
-			}
-
-			@Override
-			public void onCommunicationError(String hostAndPort) {
-				// TODO Auto-generated method stub
-				
-			}
-        	
-        };
-        */
-		
 
 		int proxyPort=DEFAULT_HTTP_PROXY_PORT;
 		int managementPort=-1;
@@ -143,7 +110,7 @@ public class Launcher {
 	}
 	static HttpProxyServer httpsServer;
 	static HttpProxyServer httpServer;
-	static void startServer(int proxyPort, int managementPort, Properties props)
+	static AddressMapper startServer(int proxyPort, int managementPort, Properties props)
 			throws UnknownHostException {
 		int httpsProxyPort;
 		try{
@@ -151,21 +118,18 @@ public class Launcher {
 		}catch(Exception ex){
 			System.out.println("Failed to find a port to listen for https proxy.");
 			System.exit(-1);
-			return;
+			return null;
 		}
 		
 	    AddressMapper mapper = new AddressMapper(httpsProxyPort);
 	    
-	    for(Object key:props.keySet()){
-	    	String from = (String)key;    		
-    		String to = props.getProperty(from);
-	    	try{
-	    		mapper.addMapping(AddressMapper.fromUrl(from),AddressMapper.fromUrl(to)); 
-	    	}catch(RuntimeException rex){
-	    		System.out.println("The following entry in the property file '%s' is invalid.");
-	    		System.exit(-1);	    		
-	    	}	    	
-	    }
+	    
+	    try{
+	    	mapper.loadMappings(props); 
+	    }catch(RuntimeException rex){
+	    	System.out.println("Invalid mapping properties."+props.toString());
+	    	System.exit(-1);	    		
+	    }	    	
         
 		httpsServer = new DefaultHttpProxyServer(httpsProxyPort,
 				(HttpResponseFilters)null, null, 
@@ -175,6 +139,7 @@ public class Launcher {
 	            (HttpResponseFilters)null, null, 
 	            null, null,new NioClientSocketChannelFactory(), new HashedWheelTimer(), new ServerSocketChannelFactory(new AddressReplacingChannelHandler(mapper, false)));
 		httpServer.start();
+		return mapper;
 	}
 	static void stopServer(){
 		if(httpServer != null)

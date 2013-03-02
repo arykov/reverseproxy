@@ -5,6 +5,7 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 public class AddressMapper {
 	public static class Address {
@@ -71,7 +72,7 @@ public class AddressMapper {
 		}
 	}
 
-	private Map<Address, Address> conversions = new HashMap<Address, Address>();
+	private Map<Address, Address> mappings = new HashMap<Address, Address>();
 
 	private InetSocketAddress httpsProxyAddress;
 
@@ -79,13 +80,28 @@ public class AddressMapper {
 		httpsProxyAddress = new InetSocketAddress(httpsProxyPort);
 	}
 
-	public void addMapping(Address from, Address to)
+	/**
+	 * Replaces old mappings with new ones.
+	 * 
+	 * @param props
+	 */
+	public void loadMappings(Properties props) throws RuntimeException{
+		Map<Address, Address> newMappings = new HashMap<Address, Address>();
+	    for(Object key:props.keySet()){
+	    	String from = (String)key;    		
+    		String to = props.getProperty(from);	    	
+	    	newMappings.put(AddressMapper.fromUrl(from),AddressMapper.fromUrl(to));
+	    }
+	    mappings = newMappings;
+
+	}
+	public void setAddressMapping(Address from, Address to)
 			throws UnknownHostException {
-		conversions.put(from, to);
+		mappings.put(from, to);
 	}
 
 	public Address getReplacementAddress(Address originalAddress) {
-		return conversions.get(originalAddress);
+		return mappings.get(originalAddress);
 	}
 
 	public InetSocketAddress getHttpsProxyAddress() {
