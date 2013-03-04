@@ -29,23 +29,28 @@
 			<artifactId>slf4j-log4j12</artifactId>
 			<version>1.7.2</version>
 		</dependency>
-		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>4.11</version>
-			<scope>test</scope>
-		</dependency>
+		
 
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-server</artifactId>
 			<version>8.1.8.v20121106</version>
-			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-webapp</artifactId>
 			<version>8.1.8.v20121106</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.code.gson</groupId>
+			<artifactId>gson</artifactId>
+			<version>2.2.2</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.11</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -88,8 +93,18 @@
 
 		</plugins>
 	</build>
-	<!-- repositories> <repository> <id>sonatype-nexus-snapshots</id> <name>Sonatype 
-		Nexus Snapshots</name> <url>https://oss.sonatype.org/content/repositories/snapshots</url> 
-		<releases> <enabled>false</enabled> </releases> <snapshots> <enabled>true</enabled> 
-		</snapshots> </repository> </repositories -->
+	<!-- repositories>
+		<repository>
+			<id>sonatype-nexus-snapshots</id>
+			<name>Sonatype 
+		Nexus Snapshots</name>
+			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
+			<releases>
+				<enabled>false</enabled>
+			</releases>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</repository>
+	</repositories-->
 </project>

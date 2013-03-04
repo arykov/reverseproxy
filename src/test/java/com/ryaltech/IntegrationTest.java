@@ -1,6 +1,8 @@
 package com.ryaltech;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -11,6 +13,8 @@ import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 import javax.net.ssl.SSLContext;
@@ -21,7 +25,10 @@ import javax.servlet.Servlet;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPut;
+import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.conn.params.ConnRoutePNames;
 import org.apache.http.conn.scheme.Scheme;
@@ -38,10 +45,11 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.littleshoot.proxy.KeyStoreManager;
 import org.littleshoot.proxy.SelfSignedKeyStoreManager;
+
+import com.google.gson.Gson;
 
 //@Ignore
 public class IntegrationTest {
@@ -63,6 +71,7 @@ public class IntegrationTest {
 	private static Server httpsServer1;
 	private static Server httpsServer2;
 	private static int proxyPort;
+	private static int managementPort;
 	
 	private static AddressMapper mapper;
 	private static Properties defaultMappings;
@@ -190,8 +199,15 @@ public class IntegrationTest {
 			proxyPort = Launcher.getAnyAvailablePort();			
 		}
 		System.out.println("Proxy port: "+proxyPort);
+		
+		//might cause infinite loop
+		do{
+			managementPort = Launcher.getAnyAvailablePort();
+		}while(proxyPort == managementPort);
 
-		mapper = Launcher.startServer(proxyPort, -1, defaultMappings);
+
+
+		mapper = Launcher.startServer(proxyPort, managementPort, defaultMappings);
 		
 
 
@@ -222,9 +238,12 @@ public class IntegrationTest {
 		directHttpClient.getConnectionManager().shutdown();
 		proxiedHttpClient.getConnectionManager().shutdown();
 	}
-	String getHttpResponse(HttpClient httpClient, String url) throws IOException, NoSuchAlgorithmException {
+	String getHttpResponse(HttpClient httpClient, String url) throws NoSuchAlgorithmException, IOException{
+		return getHttpResponse(httpClient, new HttpGet(url));
+	}
+	String getHttpResponse(HttpClient httpClient, HttpRequestBase request) throws IOException, NoSuchAlgorithmException {
 
-		HttpGet request = new HttpGet(url);
+		
 		HttpResponse response = httpClient.execute(request);
 		StringBuffer textView = new StringBuffer();
 		BufferedReader rd = new BufferedReader(new InputStreamReader(response
@@ -457,10 +476,44 @@ public class IntegrationTest {
 			}finally{
 				mapper.loadMappings(defaultMappings);
 			}
-
-		
-		
-		
 	}
+	
+	@Test
+	public void testManagementOps()throws Exception{
+		Gson gson = new Gson();
+		
+		//GET
+		String response = getHttpResponse(directHttpClient, "http://localhost:"+managementPort+"/addressmap");
+		assertNotNull(response);
+		Map<String, String> map = gson.fromJson(response, HashMap.class);
+		assertEquals(mapper.getMappings(), map);
+		
+		//PUT
+		final String original = "http://origin.com";
+		final String replacement = "http://replacement.com";
+		
+		
+		assertNull(mapper.getMappings().get(original));
+		assertNull(mapper.getReplacementAddress(AddressMapper.fromUrl(original)));
+		response = getHttpResponse(directHttpClient, new HttpPut("http://localhost:"+managementPort+"/addressmap/"+original+"/"+replacement));
+		assertNotNull(response);
+		map = gson.fromJson(response, HashMap.class);
+		assertEquals(mapper.getMappings(), map);
+		assertNotNull(mapper.getMappings().get(original));
+		assertNotNull(mapper.getReplacementAddress(AddressMapper.fromUrl(original)));
+		assertEquals(replacement, mapper.getReplacementAddress(AddressMapper.fromUrl(original)).toString());
+
+		//DELETE
+		response = getHttpResponse(directHttpClient, new HttpDelete("http://localhost:"+managementPort+"/addressmap/"+original));
+		assertNotNull(response);
+		map = gson.fromJson(response, HashMap.class);
+		assertEquals(mapper.getMappings(), map);
+		assertNull(mapper.getMappings().get(original));
+		assertNull(mapper.getReplacementAddress(AddressMapper.fromUrl(original)));
+		
+		
+		//TODO: not happy scenarios
+	}
+	
 
 }

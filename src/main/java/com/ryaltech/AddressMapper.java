@@ -3,6 +3,7 @@ package com.ryaltech;
 import java.net.InetSocketAddress;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -108,6 +109,17 @@ public class AddressMapper {
 		return httpsProxyAddress;
 	}
 
+	public Map<String, String> getMappings(){
+		Map<String, String> map = new HashMap<String, String>();
+		for(Address from:mappings.keySet()){
+			Address to = mappings.get(from);
+			if(to != null){
+				map.put(from.toString(), to.toString());
+			}
+			
+		}
+		return Collections.unmodifiableMap(map);
+	}
 	public static Address fromUrl(String strUrl)throws IllegalArgumentException{
 		try {
 			URL url = new URL(strUrl);

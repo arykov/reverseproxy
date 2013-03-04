@@ -1,12 +1,19 @@
 package com.ryaltech;
 
-import java.io.FileInputStream;
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.ServerSocket;
 import java.net.UnknownHostException;
 import java.util.Properties;
 
+import javax.servlet.Servlet;
+
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.handler.HandlerList;
+import org.eclipse.jetty.server.handler.ResourceHandler;
+import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.servlet.ServletHolder;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.jboss.netty.util.HashedWheelTimer;
 import org.littleshoot.proxy.DefaultHttpProxyServer;
@@ -62,6 +69,7 @@ public class Launcher {
 	 */
 	public static void main(String[] args) throws UnknownHostException {
 
+		//TODO: identify when either http or https proxy or management server don't startup
 		int proxyPort=DEFAULT_HTTP_PROXY_PORT;
 		int managementPort=-1;
 		
@@ -77,19 +85,8 @@ public class Launcher {
 				} else if (flag.equals("-managementPort")) {
 					managementPort = Integer.parseInt(args[++i]);
 				} else if (flag.equals("-propertyFile")) {
-					props = new Properties();
-					InputStream is = null;
-					try {
-						is = new FileInputStream(args[++i]);
-						props.load(is);
-					} finally {
-						if (is != null) {
-							try {
-								is.close();
-							} catch (IOException e) {
-							}
-						}
-					}
+					props = readProperties(args[++i]);
+					
 				}
 
 				else {
@@ -108,8 +105,30 @@ public class Launcher {
 		
 		startServer(proxyPort, managementPort, props);
 	}
+
+	private static Properties readProperties(String fileName) throws IOException {
+		Properties props = new Properties();
+		BufferedReader br = new BufferedReader(new FileReader(fileName));
+		try {
+			
+			String line = br.readLine();
+			if(line != null){
+				String [] chunks = line.split("=");
+				if(chunks.length == 2){
+					props.put(chunks[0], chunks[1]);
+				}
+			}
+			
+		} finally {
+			br.close();
+		}
+		return props;
+		
+	}
+
 	static HttpProxyServer httpsServer;
 	static HttpProxyServer httpServer;
+	static Server managementServer;
 	static AddressMapper startServer(int proxyPort, int managementPort, Properties props)
 			throws UnknownHostException {
 		int httpsProxyPort;
@@ -139,13 +158,51 @@ public class Launcher {
 	            (HttpResponseFilters)null, null, 
 	            null, null,new NioClientSocketChannelFactory(), new HashedWheelTimer(), new ServerSocketChannelFactory(new AddressReplacingChannelHandler(mapper, false)));
 		httpServer.start();
+		if(managementPort > 0){
+			managementServer = startManagementServer(managementPort, mapper);
+		}
 		return mapper;
 	}
+	
+	static Server startManagementServer(int port, AddressMapper mapper){
+		Servlet servlet = new AddressMapperManagementServlet(mapper);
+	
+		Server server = new Server(port);
+		
+		ServletContextHandler servletHandler = new ServletContextHandler();	
+		servletHandler.setContextPath("/addressmap");
+		
+		servletHandler.addServlet(new ServletHolder(servlet), "/*");		
+		ResourceHandler resourceHandler = new ResourceHandler();
+		resourceHandler.setDirectoriesListed(false);
+		resourceHandler.setWelcomeFiles(new String[] { "index.html" });
+
+		
+		try {			
+			resourceHandler.setResourceBase(Launcher.class.getResource("/web").toURI().toString());
+			HandlerList list = new HandlerList();			
+			list.addHandler(servletHandler);
+			list.addHandler(resourceHandler);
+			server.setHandler(list);
+			server.start();
+		} catch (Exception ex) {
+			ex.printStackTrace();
+			throw new RuntimeException("Failed to start management server", ex);
+		}
+
+		return server;
+
+	}
+
 	static void stopServer(){
 		if(httpServer != null)
 			httpServer.stop();
 		if(httpsServer != null)
 			httpsServer.stop();
+		if(managementServer != null)
+			try{
+				managementServer.stop();
+			}catch(Exception ex){}
 		
 	}
 
