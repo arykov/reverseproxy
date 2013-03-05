@@ -117,11 +117,12 @@ public class Launcher {
 		try {
 			
 			String line = br.readLine();
-			if(line != null){
+			while(line != null){
 				String [] chunks = line.split("=");
 				if(chunks.length == 2){
 					props.put(chunks[0], chunks[1]);
 				}
+				line = br.readLine();
 			}
 			
 		} finally {
