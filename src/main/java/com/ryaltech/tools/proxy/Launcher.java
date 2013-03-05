@@ -1,4 +1,4 @@
-package com.ryaltech;
+package com.ryaltech.tools.proxy;
 
 import java.io.BufferedReader;
 import java.io.FileReader;

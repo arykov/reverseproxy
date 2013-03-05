@@ -1,11 +1,11 @@
-package com.ryaltech;
+package com.ryaltech.tools.proxy;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import org.junit.Test;
 
-import com.ryaltech.AddressMapper.Address;
+import com.ryaltech.tools.proxy.AddressMapper.Address;
 
 public class AddressMappingTest {
 
@@ -56,7 +56,7 @@ public class AddressMappingTest {
 		}
 		
 		try {
-			Address address = AddressMapper.fromUrl("http://");
+			AddressMapper.fromUrl("http://");
 			fail();
 		} catch (IllegalArgumentException ex) {
 		}

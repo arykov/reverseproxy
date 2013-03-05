@@ -93,7 +93,7 @@
 
 		</plugins>
 	</build>
-	<!-- repositories>
+	<repositories>
 		<repository>
 			<id>sonatype-nexus-snapshots</id>
 			<name>Sonatype 
@@ -106,5 +106,5 @@
 				<enabled>true</enabled>
 			</snapshots>
 		</repository>
-	</repositories-->
+	</repositories>
 </project>

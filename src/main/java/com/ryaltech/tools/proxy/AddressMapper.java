@@ -1,4 +1,4 @@
-package com.ryaltech;
+package com.ryaltech.tools.proxy;
 
 import java.net.InetSocketAddress;
 import java.net.URL;
@@ -34,6 +34,7 @@ public class AddressMapper {
 
 		private boolean secure;
 
+		@Override
 		public boolean equals(Object obj) {
 			if (obj instanceof Address && obj != null) {
 				Address addr = (Address) obj;
@@ -53,6 +54,7 @@ public class AddressMapper {
 
 		}
 
+		@Override
 		public final int hashCode() {
 			int hash = host.hashCode() + port;
 			if (secure)
@@ -60,6 +62,7 @@ public class AddressMapper {
 			return hash;
 		}
 
+		@Override
 		public String toString() {
 			StringBuffer sb = new StringBuffer(secure ? "https://" : "http://")
 					.append(toHost());

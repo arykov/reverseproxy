@@ -1,4 +1,4 @@
-package com.ryaltech;
+package com.ryaltech.tools.proxy;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -9,7 +9,7 @@ import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 import org.jboss.netty.handler.codec.http.HttpMethod;
 import org.jboss.netty.handler.codec.http.HttpRequest;
 
-import com.ryaltech.AddressMapper.Address;
+import com.ryaltech.tools.proxy.AddressMapper.Address;
 
 public class AddressReplacingChannelHandler extends
 		SimpleChannelUpstreamHandler {

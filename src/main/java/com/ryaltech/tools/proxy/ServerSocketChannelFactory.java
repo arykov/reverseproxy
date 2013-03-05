@@ -1,4 +1,4 @@
-package com.ryaltech;
+package com.ryaltech.tools.proxy;
 
 import org.jboss.netty.channel.ChannelHandler;
 import org.jboss.netty.channel.ChannelPipeline;

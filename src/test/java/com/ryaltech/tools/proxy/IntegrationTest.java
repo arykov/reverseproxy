@@ -1,4 +1,4 @@
-package com.ryaltech;
+package com.ryaltech.tools.proxy;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
