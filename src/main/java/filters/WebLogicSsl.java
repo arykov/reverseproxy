@@ -1,12 +1,10 @@
-package com.ryaltech.tools.proxy;
-
-
-
+package filters;
 import org.jboss.netty.handler.codec.http.HttpRequest;
 
 import com.ryaltech.tools.proxy.AddressMapper.Address;
+import com.ryaltech.tools.proxy.HttpRequestFilter;
 
-public class WebLogicSslRequestFilter implements HttpRequestFilter {
+public class WebLogicSsl implements HttpRequestFilter {
 	public static final String WL_PROXY_SSL_HEADER = "WL-Proxy-SSL";
 	public static final String WL_PROXY_SSL_HEADER_VALUE = "true";
 	

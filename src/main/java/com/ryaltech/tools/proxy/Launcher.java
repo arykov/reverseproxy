@@ -217,7 +217,7 @@ public class Launcher {
 	private static void help() {
 		
 		System.out
-				.println("java -classpath " + Launcher.class.getProtectionDomain().getCodeSource().getLocation().getFile()+ " " +Launcher.class.getCanonicalName()+" [-pp <proxyPort>] [-mp <managementPort>] [-pf <propertyFile>]");
+				.println("java -classpath " + Launcher.class.getProtectionDomain().getCodeSource().getLocation().getFile()+ " " +Launcher.class.getCanonicalName()+" [-pp <proxyPort>] [-mp <managementPort>] [-pf <propertyFile>] [-f <filterClassName>]");
 		System.out
 				.println("\t<proxyPort> - port proxy listens on. It defaults to "
 						+ DEFAULT_HTTP_PROXY_PORT);
@@ -225,6 +225,8 @@ public class Launcher {
 				.println("\t<managementPort> - port to start management server on.  If not specified management server will not start.");
 		System.out
 				.println("\t<propertyFile> - location to the file that contains settings.  If not specified none will be used.");
+		System.out
+				.println("\t<filterClassName> - Fully qualified name of a class that implements com.ryaltech.tools.proxy.HttpRequestFilter. For example filter.WebLogicSsl. Default filter implementation will not affect requests.");
 	}
 
 }

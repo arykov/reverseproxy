@@ -1,17 +1,20 @@
 package com.ryaltech.tools.proxy;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.util.List;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.handler.codec.http.HttpMethod;
 import org.jboss.netty.handler.codec.http.HttpRequest;
 import org.jboss.netty.handler.codec.http.HttpVersion;
 import org.junit.Test;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+
+import filters.WebLogicSsl;
 
 public class HttpFilterTest {
 	@Test
@@ -22,7 +25,7 @@ public class HttpFilterTest {
 	
 	@Test
 	public void testWebLogicSslFilter(){
-		HttpRequestFilter filter = new WebLogicSslRequestFilter();
+		HttpRequestFilter filter = new WebLogicSsl();
 		
 		HeaderTestingRequest request = new HeaderTestingRequest();
 		assertFalse(filter.filterRequest(request, AddressMapper.fromUrl("https://xyz"), AddressMapper.fromUrl("https://yyy")));
@@ -96,8 +99,8 @@ public class HttpFilterTest {
 		private boolean headerSet;
 		@Override
 		public void addHeader(String name, Object value) {
-			assertEquals(WebLogicSslRequestFilter.WL_PROXY_SSL_HEADER, name);
-			assertEquals(WebLogicSslRequestFilter.WL_PROXY_SSL_HEADER_VALUE, value);
+			assertEquals(WebLogicSsl.WL_PROXY_SSL_HEADER, name);
+			assertEquals(WebLogicSsl.WL_PROXY_SSL_HEADER_VALUE, value);
 			headerSet = true;
 		};
 		

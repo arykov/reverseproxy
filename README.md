@@ -9,7 +9,7 @@ To deal with this reverse proxy associates a DNS name with specific IP:port comb
   * _proxyPort_ - port proxy listens on. It defaults to 8080
   * _managementPort_ - port to start management server on.  If not specified management server will not start.
   * _propertyFile_ - location to the file that contains initial proxy configuration.  If not specified none will be used. [Here's an example of a property file](https://github.com/arykov/reverseproxy/blob/master/src/test/resources/test.properties).
-  * _filterClassName_ - Fully qualified name of a class that implements com.ryaltech.tools.proxy.HttpRequestFilter. For example com.ryaltech.tools.proxy.WebLogicSslRequestFilter. Default filter implementation will not affect requests.
+  * _filterClassName_ - Fully qualified name of a class that implements com.ryaltech.tools.proxy.HttpRequestFilter. For example filter.WebLogicSsl. Default filter implementation will not affect requests.
 
 
 **To manage using a browser:**
