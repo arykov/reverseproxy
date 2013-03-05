@@ -69,7 +69,6 @@ public class Launcher {
 	 */
 	public static void main(String[] args) throws UnknownHostException {
 
-		//TODO: identify when either http or https proxy or management server don't startup
 		int proxyPort=DEFAULT_HTTP_PROXY_PORT;
 		int managementPort=-1;
 		
@@ -103,7 +102,13 @@ public class Launcher {
 		}
     
 		
-		startServer(proxyPort, managementPort, props);
+		try {
+			startServer(proxyPort, managementPort, props);
+		} catch (Exception ex) {
+			ex.printStackTrace();
+			System.exit(-1);
+
+		}
 	}
 
 	private static Properties readProperties(String fileName) throws IOException {
@@ -207,8 +212,9 @@ public class Launcher {
 	}
 
 	private static void help() {
+		
 		System.out
-				.println("java -classpath reverseproxy-<version>.jar [-proxyPort <proxyPort>] [-managementPort <managementPort>] [-propertyFile <propertyFile>]");
+				.println("java -classpath " + Launcher.class.getProtectionDomain().getCodeSource().getLocation().getFile()+ " " +Launcher.class.getCanonicalName()+" [-proxyPort <proxyPort>] [-managementPort <managementPort>] [-propertyFile <propertyFile>]");
 		System.out
 				.println("\t<proxyPort> - port proxy listens on. It defaults to "
 						+ DEFAULT_HTTP_PROXY_PORT);

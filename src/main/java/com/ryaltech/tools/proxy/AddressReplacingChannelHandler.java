@@ -30,20 +30,22 @@ public class AddressReplacingChannelHandler extends
 		Object obj = me.getMessage();
 		if (obj instanceof HttpRequest) {
 			HttpRequest request = (HttpRequest) obj;
-			
+
 			if (HttpMethod.CONNECT != request.getMethod()) {
 				Address originalAddress = AddressMapper.fromHost(
 						request.getHeader("Host"), defaultSecure);
 				Address replacementAddress = mapper
 						.getReplacementAddress(originalAddress);
-				//TODO:
-				// should we read weblogic header to determing secure?
-				// problem arises when we come back to http proxy after https
 				
+				 //TODO:should we read weblogic header to determing secure?
+				 //problem arises when we come back to http proxy after https
+				 
+
 				if (replacementAddress != null) {
 
 					String path = request.getUri();
-					if (path.startsWith("http://") || path.startsWith("https://")) {
+					if (path.startsWith("http://")
+							|| path.startsWith("https://")) {
 						try {
 							URL url = new URL(path);
 							path = url.getPath();
@@ -53,31 +55,27 @@ public class AddressReplacingChannelHandler extends
 						}
 					}
 					request.setUri(replacementAddress.toString() + path);
-				} 
-			}else {
+				}
+			} else {
 				Address originalAddress = AddressMapper.fromHost(
 						request.getHeader("Host"), true);
 				Address replacementAddress = mapper
 						.getReplacementAddress(originalAddress);
 				/**
-				 * Following scenarios possible
-				 * 1) straight through 
-				 * 2) https2http - the one we perform right now
-				 * 3) https2https with name replacement
-				 * 4) https2https but with man in the middle - no immideate plans to support
+				 * Following scenarios possible 1) straight through 2)
+				 * https2http - the one we perform right now 3) https2https with
+				 * name replacement 4) https2https but with man in the middle -
+				 * no immideate plans to support
 				 */
-				//only act if request needs to be reverse proxied
+				// only act if request needs to be reverse proxied
 				if (replacementAddress != null) {
 					if (replacementAddress.isSecure()) {
-						//TODO: test
-						//https2https with name replacement
-						request.setUri(replacementAddress
-								.getHost()
-								+ ":"
+						// https2https with name replacement
+						request.setUri(replacementAddress.getHost() + ":"
 								+ replacementAddress.getPort());
 
 					} else {
-						//https2http
+						// https2http
 						request.setUri(mapper.getHttpsProxyAddress()
 								.getHostName()
 								+ ":"

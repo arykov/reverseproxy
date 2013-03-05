@@ -12,12 +12,6 @@
 			<artifactId>littleproxy</artifactId>
 			<version>0.5-SNAPSHOT</version>
 		</dependency>
-		<dependency>
-			<groupId>io.netty</groupId>
-			<artifactId>netty</artifactId>
-			<version>3.5.6.Final</version>
-			<scope>compile</scope>
-		</dependency>
 
 		<dependency>
 			<groupId>log4j</groupId>
@@ -29,7 +23,7 @@
 			<artifactId>slf4j-log4j12</artifactId>
 			<version>1.7.2</version>
 		</dependency>
-		
+
 
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
@@ -38,7 +32,7 @@
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
-			<artifactId>jetty-webapp</artifactId>
+			<artifactId>jetty-servlet</artifactId>
 			<version>8.1.8.v20121106</version>
 		</dependency>
 		<dependency>
@@ -79,14 +73,25 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-shade-plugin</artifactId>
-				<version>1.2.2</version>
+				<version>2.0</version>
 				<executions>
 					<execution>
 						<phase>package</phase>
 						<goals>
 							<goal>shade</goal>
 						</goals>
-
+						<configuration>
+							<filters>
+								<filter>
+									<artifact>org.eclipse.jetty.orbit:javax.servlet</artifact>
+									<excludes>
+										<exclude>META-INF/ECLIPSEF.RSA</exclude>
+										<exclude>META-INF/ECLIPSEF.SF</exclude>
+										<exclude>META-INF/eclipse.inf</exclude>
+									</excludes>
+								</filter>
+							</filters>
+						</configuration>
 					</execution>
 				</executions>
 			</plugin>
