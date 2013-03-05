@@ -207,7 +207,7 @@ public class IntegrationTest {
 
 
 
-		mapper = Launcher.startServer(proxyPort, managementPort, defaultMappings);
+		mapper = Launcher.startServer(proxyPort, managementPort, new NopRequestFilter(), defaultMappings);
 		
 
 

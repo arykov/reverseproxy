@@ -71,6 +71,7 @@ public class Launcher {
 
 		int proxyPort=DEFAULT_HTTP_PROXY_PORT;
 		int managementPort=-1;
+		HttpRequestFilter filter = new NopRequestFilter();
 		
 		Properties props = new Properties();
 		
@@ -79,13 +80,14 @@ public class Launcher {
 		try {
 			while (i < args.length) {
 				String flag = args[i];
-				if (flag.equals("-proxyPort")) {
+				if (flag.equals("-pp")) {
 					proxyPort = Integer.parseInt(args[++i]);
-				} else if (flag.equals("-managementPort")) {
+				} else if (flag.equals("-mp")) {
 					managementPort = Integer.parseInt(args[++i]);
-				} else if (flag.equals("-propertyFile")) {
-					props = readProperties(args[++i]);
-					
+				} else if (flag.equals("-pf")) {
+					props = readProperties(args[++i]);					
+				}else if (flag.equals("-f")) {
+					filter = (HttpRequestFilter)Class.forName(args[++i]).newInstance();					
 				}
 
 				else {
@@ -103,7 +105,7 @@ public class Launcher {
     
 		
 		try {
-			startServer(proxyPort, managementPort, props);
+			startServer(proxyPort, managementPort, filter, props);
 		} catch (Exception ex) {
 			ex.printStackTrace();
 			System.exit(-1);
@@ -135,7 +137,7 @@ public class Launcher {
 	static HttpProxyServer httpsServer;
 	static HttpProxyServer httpServer;
 	static Server managementServer;
-	static AddressMapper startServer(int proxyPort, int managementPort, Properties props)
+	static AddressMapper startServer(int proxyPort, int managementPort, HttpRequestFilter filter, Properties props)
 			throws UnknownHostException {
 		int httpsProxyPort;
 		try{
@@ -158,11 +160,11 @@ public class Launcher {
         
 		httpsServer = new DefaultHttpProxyServer(httpsProxyPort,
 				(HttpResponseFilters)null, null, 
-	            new SelfSignedKeyStoreManager(), null, new NioClientSocketChannelFactory(), new HashedWheelTimer(), new ServerSocketChannelFactory(new AddressReplacingChannelHandler(mapper, true)));
+	            new SelfSignedKeyStoreManager(), null, new NioClientSocketChannelFactory(), new HashedWheelTimer(), new ServerSocketChannelFactory(new AddressReplacingChannelHandler(mapper, filter, true)));
 		httpsServer.start();
 		final HttpProxyServer httpServer = new DefaultHttpProxyServer(proxyPort, 
 	            (HttpResponseFilters)null, null, 
-	            null, null,new NioClientSocketChannelFactory(), new HashedWheelTimer(), new ServerSocketChannelFactory(new AddressReplacingChannelHandler(mapper, false)));
+	            null, null,new NioClientSocketChannelFactory(), new HashedWheelTimer(), new ServerSocketChannelFactory(new AddressReplacingChannelHandler(mapper, filter, false)));
 		httpServer.start();
 		if(managementPort > 0){
 			managementServer = startManagementServer(managementPort, mapper);
@@ -215,7 +217,7 @@ public class Launcher {
 	private static void help() {
 		
 		System.out
-				.println("java -classpath " + Launcher.class.getProtectionDomain().getCodeSource().getLocation().getFile()+ " " +Launcher.class.getCanonicalName()+" [-proxyPort <proxyPort>] [-managementPort <managementPort>] [-propertyFile <propertyFile>]");
+				.println("java -classpath " + Launcher.class.getProtectionDomain().getCodeSource().getLocation().getFile()+ " " +Launcher.class.getCanonicalName()+" [-pp <proxyPort>] [-mp <managementPort>] [-pf <propertyFile>]");
 		System.out
 				.println("\t<proxyPort> - port proxy listens on. It defaults to "
 						+ DEFAULT_HTTP_PROXY_PORT);

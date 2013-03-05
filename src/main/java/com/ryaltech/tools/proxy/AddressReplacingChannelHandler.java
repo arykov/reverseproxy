@@ -17,11 +17,13 @@ public class AddressReplacingChannelHandler extends
 	public static final String HANDLER_ID = "AddressReplacer";
 	private boolean defaultSecure;
 	private AddressMapper mapper;
+	private HttpRequestFilter filter;
 
-	public AddressReplacingChannelHandler(AddressMapper mapper, boolean secure) {
+	public AddressReplacingChannelHandler(AddressMapper mapper, HttpRequestFilter filter, boolean secure) {
 		super();
 		this.defaultSecure = secure;
 		this.mapper = mapper;
+		this.filter = filter;
 	}
 
 	@Override
@@ -36,11 +38,8 @@ public class AddressReplacingChannelHandler extends
 						request.getHeader("Host"), defaultSecure);
 				Address replacementAddress = mapper
 						.getReplacementAddress(originalAddress);
-				
-				 //TODO:should we read weblogic header to determing secure?
-				 //problem arises when we come back to http proxy after https
-				 
-
+				//filter intended to change the request
+				filter.filterRequest(request, originalAddress, replacementAddress);
 				if (replacementAddress != null) {
 
 					String path = request.getUri();
