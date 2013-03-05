@@ -47,7 +47,8 @@ public class AddressReplacingChannelHandler extends
 							|| path.startsWith("https://")) {
 						try {
 							URL url = new URL(path);
-							path = url.getPath();
+							path = url.getFile();
+							
 						} catch (MalformedURLException e) {
 							// ignore
 

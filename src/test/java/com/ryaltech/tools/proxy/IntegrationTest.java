@@ -8,6 +8,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URL;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
@@ -21,6 +22,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import javax.servlet.Servlet;
+import javax.servlet.http.HttpServletRequest;
 
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
@@ -53,7 +55,7 @@ import com.google.gson.Gson;
 
 //@Ignore
 public class IntegrationTest {
-	
+
 	private static final String HTTPS_SERVER1_SIGNATURE = "httpsServer1";
 	private static final String HTTPS_SERVER2_SIGNATURE = "httpsServer2";
 
@@ -72,11 +74,10 @@ public class IntegrationTest {
 	private static Server httpsServer2;
 	private static int proxyPort;
 	private static int managementPort;
-	
+
 	private static AddressMapper mapper;
 	private static Properties defaultMappings;
 
-	
 	private static final String PROXIED_URL1 = "http://test1";
 	private static final String PROXIED_URL2 = "http://test1:80";
 	private static final String PROXIED_URL3 = "http://test1:8111";
@@ -87,8 +88,9 @@ public class IntegrationTest {
 	private static final String PROXIED_URL8 = "https://test1:8333";
 	private static final String PROXIED_URL9 = "https://test2";
 	private static final String PROXIED_URL10 = "https://test2:443";
-	
-	
+
+	private static RequestRecorder recorder = new RequestRecorder();
+
 	private HttpClient directHttpClient;
 	private HttpClient proxiedHttpClient;
 
@@ -154,62 +156,72 @@ public class IntegrationTest {
 
 	@BeforeClass
 	public static void startServers() throws Exception {
-		httpServer1 = startHttpJetty(new DummyHttpServlet(
-				HTTP_SERVER1_SIGNATURE));
-		
+		httpServer1 = startHttpJetty(new TestHttpServlet(
+				HTTP_SERVER1_SIGNATURE, recorder));
 
-		httpServer2 = startHttpJetty(new DummyHttpServlet(
-				HTTP_SERVER2_SIGNATURE));
-		httpServer3 = startHttpJetty(new DummyHttpServlet(
-				HTTP_SERVER3_SIGNATURE));
-		httpServer4 = startHttpJetty(new DummyHttpServlet(
-				HTTP_SERVER4_SIGNATURE));
-		httpServer5 = startHttpJetty(new DummyHttpServlet(
-				HTTP_SERVER5_SIGNATURE));
+		httpServer2 = startHttpJetty(new TestHttpServlet(
+				HTTP_SERVER2_SIGNATURE, recorder));
+		httpServer3 = startHttpJetty(new TestHttpServlet(
+				HTTP_SERVER3_SIGNATURE, recorder));
+		httpServer4 = startHttpJetty(new TestHttpServlet(
+				HTTP_SERVER4_SIGNATURE, recorder));
+		httpServer5 = startHttpJetty(new TestHttpServlet(
+				HTTP_SERVER5_SIGNATURE, recorder));
 
-		httpsServer1 = startHttpsJetty(new DummyHttpServlet(
-				HTTPS_SERVER1_SIGNATURE));
+		httpsServer1 = startHttpsJetty(new TestHttpServlet(
+				HTTPS_SERVER1_SIGNATURE, recorder));
 
-		httpsServer2 = startHttpsJetty(new DummyHttpServlet(
-				HTTPS_SERVER2_SIGNATURE));
+		httpsServer2 = startHttpsJetty(new TestHttpServlet(
+				HTTPS_SERVER2_SIGNATURE, recorder));
 
-		System.out.println(HTTP_SERVER1_SIGNATURE+" port:"+getServerPort(httpServer1));
-		System.out.println(HTTP_SERVER2_SIGNATURE+" port:"+getServerPort(httpServer2));
-		System.out.println(HTTP_SERVER3_SIGNATURE+" port:"+getServerPort(httpServer3));
-		System.out.println(HTTP_SERVER4_SIGNATURE+" port:"+getServerPort(httpServer4));
-		System.out.println(HTTP_SERVER5_SIGNATURE+" port:"+getServerPort(httpServer5));
-		System.out.println(HTTPS_SERVER1_SIGNATURE+" port:"+getServerPort(httpsServer1));
-		System.out.println(HTTPS_SERVER2_SIGNATURE+" port:"+getServerPort(httpsServer2));
+		System.out.println(HTTP_SERVER1_SIGNATURE + " port:"
+				+ getServerPort(httpServer1));
+		System.out.println(HTTP_SERVER2_SIGNATURE + " port:"
+				+ getServerPort(httpServer2));
+		System.out.println(HTTP_SERVER3_SIGNATURE + " port:"
+				+ getServerPort(httpServer3));
+		System.out.println(HTTP_SERVER4_SIGNATURE + " port:"
+				+ getServerPort(httpServer4));
+		System.out.println(HTTP_SERVER5_SIGNATURE + " port:"
+				+ getServerPort(httpServer5));
+		System.out.println(HTTPS_SERVER1_SIGNATURE + " port:"
+				+ getServerPort(httpsServer1));
+		System.out.println(HTTPS_SERVER2_SIGNATURE + " port:"
+				+ getServerPort(httpsServer2));
 		defaultMappings = new Properties() {
 			{
-				put(PROXIED_URL1, "http://localhost:"+getServerPort(httpServer1));
-				put(PROXIED_URL3, "http://localhost:"+getServerPort(httpServer2));
-				put(PROXIED_URL4, "https://localhost:"+getServerPort(httpsServer1));
-				put(PROXIED_URL6, "https://localhost:"+getServerPort(httpsServer2));
-				put(PROXIED_URL7, "http://localhost:"+getServerPort(httpServer3));
-				put(PROXIED_URL8, "http://localhost:"+getServerPort(httpServer4));
-				put(PROXIED_URL9, "http://localhost:"+getServerPort(httpServer5));
-			}};
-			
+				put(PROXIED_URL1, "http://localhost:"
+						+ getServerPort(httpServer1));
+				put(PROXIED_URL3, "http://localhost:"
+						+ getServerPort(httpServer2));
+				put(PROXIED_URL4, "https://localhost:"
+						+ getServerPort(httpsServer1));
+				put(PROXIED_URL6, "https://localhost:"
+						+ getServerPort(httpsServer2));
+				put(PROXIED_URL7, "http://localhost:"
+						+ getServerPort(httpServer3));
+				put(PROXIED_URL8, "http://localhost:"
+						+ getServerPort(httpServer4));
+				put(PROXIED_URL9, "http://localhost:"
+						+ getServerPort(httpServer5));
+			}
+		};
 
 		// start proxy
-		try{
+		try {
 			proxyPort = Integer.getInteger("proxyPort").intValue();
-		}catch(Exception ex){
-			proxyPort = Launcher.getAnyAvailablePort();			
+		} catch (Exception ex) {
+			proxyPort = Launcher.getAnyAvailablePort();
 		}
-		System.out.println("Proxy port: "+proxyPort);
-		
-		//might cause infinite loop
-		do{
+		System.out.println("Proxy port: " + proxyPort);
+
+		// might cause infinite loop
+		do {
 			managementPort = Launcher.getAnyAvailablePort();
-		}while(proxyPort == managementPort);
+		} while (proxyPort == managementPort);
 
-
-
-		mapper = Launcher.startServer(proxyPort, managementPort, new NopRequestFilter(), defaultMappings);
-		
-
+		mapper = Launcher.startServer(proxyPort, managementPort,
+				new NopRequestFilter(), defaultMappings);
 
 	}
 
@@ -227,23 +239,27 @@ public class IntegrationTest {
 	}
 
 	@Before
-	public void setUp()throws Exception{
+	public void setUp() throws Exception {
 		directHttpClient = createHttpClient(null);
 		proxiedHttpClient = createHttpClient(new HttpHost("localhost",
 				proxyPort, "http"));
-		
+
 	}
+
 	@After
-	public void tearDown(){
+	public void tearDown() {
 		directHttpClient.getConnectionManager().shutdown();
 		proxiedHttpClient.getConnectionManager().shutdown();
 	}
-	String getHttpResponse(HttpClient httpClient, String url) throws NoSuchAlgorithmException, IOException{
+
+	String getHttpResponse(HttpClient httpClient, String url)
+			throws NoSuchAlgorithmException, IOException {
 		return getHttpResponse(httpClient, new HttpGet(url));
 	}
-	String getHttpResponse(HttpClient httpClient, HttpRequestBase request) throws IOException, NoSuchAlgorithmException {
 
-		
+	String getHttpResponse(HttpClient httpClient, HttpRequestBase request)
+			throws IOException, NoSuchAlgorithmException {
+
 		HttpResponse response = httpClient.execute(request);
 		StringBuffer textView = new StringBuffer();
 		BufferedReader rd = new BufferedReader(new InputStreamReader(response
@@ -255,11 +271,12 @@ public class IntegrationTest {
 		}
 		return textView.toString();
 	}
-	
+
 	String getHttpResponse(HttpClient httpClient, String host, int port,
 			String path) throws IOException, NoSuchAlgorithmException {
-		return getHttpResponse(httpClient, String.format("%s:%s%s", host, port, path));
-		
+		return getHttpResponse(httpClient,
+				String.format("%s:%s%s", host, port, path));
+
 	}
 
 	private HttpClient createHttpClient(HttpHost proxy)
@@ -343,177 +360,191 @@ public class IntegrationTest {
 	 * 
 	 * @throws Exception
 	 */
-	@Test	
+	@Test
 	public void testStartedServersDirectly() throws Exception {
 		// no proxy
 		assertServersNoTranforms(directHttpClient);
 	}
 
-	@Test	
+	@Test
 	public void testProxyStraightThrough() throws Exception {
 		// through proxy
 		assertServersNoTranforms(proxiedHttpClient);
 	}
 
+	@Test
+	public void testProxyHttp2Http() throws Exception {
 
-	@Test	
-	public void testProxyHttp2Http()throws Exception{
-				
-		assertEquals(
-				HTTP_SERVER1_SIGNATURE,
+		assertEquals(HTTP_SERVER1_SIGNATURE,
 				getHttpResponse(proxiedHttpClient, PROXIED_URL1));
-		
-		assertEquals(
-				HTTP_SERVER1_SIGNATURE,
+
+		assertEquals(HTTP_SERVER1_SIGNATURE,
 				getHttpResponse(proxiedHttpClient, PROXIED_URL2));
-		
-		assertEquals(
-				HTTP_SERVER2_SIGNATURE,
+
+		assertEquals(HTTP_SERVER2_SIGNATURE,
 				getHttpResponse(proxiedHttpClient, PROXIED_URL3));
 	}
 
-	
 	@Test
-	public void testProxyHttps2Https()throws Exception{
-		
+	public void testProxyHttps2Https() throws Exception {
+
 		assertServersNoTranforms(proxiedHttpClient);
-		
-		
-		assertEquals(
-				HTTPS_SERVER1_SIGNATURE,
+
+		assertEquals(HTTPS_SERVER1_SIGNATURE,
 				getHttpResponse(proxiedHttpClient, PROXIED_URL4));
-		
-		assertEquals(
-				HTTPS_SERVER1_SIGNATURE,
+
+		assertEquals(HTTPS_SERVER1_SIGNATURE,
 				getHttpResponse(proxiedHttpClient, PROXIED_URL5));
-		
-		assertEquals(
-				HTTPS_SERVER2_SIGNATURE,
+
+		assertEquals(HTTPS_SERVER2_SIGNATURE,
 				getHttpResponse(proxiedHttpClient, PROXIED_URL6));
 	}
 
-	
-	@Test	
-	public void testProxyHttps2Http()throws Exception{
-		
-		
-		assertEquals(
-				HTTP_SERVER3_SIGNATURE,
+	@Test
+	public void testProxyHttps2Http() throws Exception {
+
+		assertEquals(HTTP_SERVER3_SIGNATURE,
 				getHttpResponse(proxiedHttpClient, PROXIED_URL7));
-				
-		
-		assertEquals(
-				HTTP_SERVER4_SIGNATURE,
+
+		assertEquals(HTTP_SERVER4_SIGNATURE,
 				getHttpResponse(proxiedHttpClient, PROXIED_URL8));
-		
-		assertEquals(
-				HTTP_SERVER5_SIGNATURE,
+
+		assertEquals(HTTP_SERVER5_SIGNATURE,
 				getHttpResponse(proxiedHttpClient, PROXIED_URL9));
-		assertEquals(
-				HTTP_SERVER5_SIGNATURE,
+		assertEquals(HTTP_SERVER5_SIGNATURE,
 				getHttpResponse(proxiedHttpClient, PROXIED_URL10));
 	}
-	
+
 	@Test
-	public void testMapper()throws Exception{
+	public void testMapper() throws Exception {
 		Properties changedMappings = new Properties() {
 			{
-				put(PROXIED_URL1, "http://localhost:"+getServerPort(httpServer2));
-				put(PROXIED_URL3, "http://localhost:"+getServerPort(httpServer3));
-				put(PROXIED_URL4, "https://localhost:"+getServerPort(httpsServer2));
-				put(PROXIED_URL6, "https://localhost:"+getServerPort(httpsServer1));
-				put(PROXIED_URL7, "http://localhost:"+getServerPort(httpServer4));
-				put(PROXIED_URL8, "http://localhost:"+getServerPort(httpServer5));
-				put(PROXIED_URL9, "http://localhost:"+getServerPort(httpServer1));
-			}};
-			mapper.loadMappings(changedMappings);
-			try{
-				//http2http
-				assertEquals(
-						HTTP_SERVER2_SIGNATURE,
-						getHttpResponse(proxiedHttpClient, PROXIED_URL1));
-				
-				assertEquals(
-						HTTP_SERVER2_SIGNATURE,
-						getHttpResponse(proxiedHttpClient, PROXIED_URL2));
-				
-				assertEquals(
-						HTTP_SERVER3_SIGNATURE,
-						getHttpResponse(proxiedHttpClient, PROXIED_URL3));
-				assertServersNoTranforms(proxiedHttpClient);
-				
-				//https2https
-				assertEquals(
-						HTTPS_SERVER2_SIGNATURE,
-						getHttpResponse(proxiedHttpClient, PROXIED_URL4));
-				
-				assertEquals(
-						HTTPS_SERVER2_SIGNATURE,
-						getHttpResponse(proxiedHttpClient, PROXIED_URL5));
-				
-				assertEquals(
-						HTTPS_SERVER1_SIGNATURE,
-						getHttpResponse(proxiedHttpClient, PROXIED_URL6));
-				
-				
-				//https2http
-				assertEquals(
-						HTTP_SERVER4_SIGNATURE,
-						getHttpResponse(proxiedHttpClient, PROXIED_URL7));
-						
-				
-				assertEquals(
-						HTTP_SERVER5_SIGNATURE,
-						getHttpResponse(proxiedHttpClient, PROXIED_URL8));
-				
-				assertEquals(
-						HTTP_SERVER1_SIGNATURE,
-						getHttpResponse(proxiedHttpClient, PROXIED_URL9));
-				assertEquals(
-						HTTP_SERVER1_SIGNATURE,
-						getHttpResponse(proxiedHttpClient, PROXIED_URL10));
-				
-			}finally{
-				mapper.loadMappings(defaultMappings);
+				put(PROXIED_URL1, "http://localhost:"
+						+ getServerPort(httpServer2));
+				put(PROXIED_URL3, "http://localhost:"
+						+ getServerPort(httpServer3));
+				put(PROXIED_URL4, "https://localhost:"
+						+ getServerPort(httpsServer2));
+				put(PROXIED_URL6, "https://localhost:"
+						+ getServerPort(httpsServer1));
+				put(PROXIED_URL7, "http://localhost:"
+						+ getServerPort(httpServer4));
+				put(PROXIED_URL8, "http://localhost:"
+						+ getServerPort(httpServer5));
+				put(PROXIED_URL9, "http://localhost:"
+						+ getServerPort(httpServer1));
 			}
+		};
+		mapper.loadMappings(changedMappings);
+		try {
+			// http2http
+			assertEquals(HTTP_SERVER2_SIGNATURE,
+					getHttpResponse(proxiedHttpClient, PROXIED_URL1));
+
+			assertEquals(HTTP_SERVER2_SIGNATURE,
+					getHttpResponse(proxiedHttpClient, PROXIED_URL2));
+
+			assertEquals(HTTP_SERVER3_SIGNATURE,
+					getHttpResponse(proxiedHttpClient, PROXIED_URL3));
+			assertServersNoTranforms(proxiedHttpClient);
+
+			// https2https
+			assertEquals(HTTPS_SERVER2_SIGNATURE,
+					getHttpResponse(proxiedHttpClient, PROXIED_URL4));
+
+			assertEquals(HTTPS_SERVER2_SIGNATURE,
+					getHttpResponse(proxiedHttpClient, PROXIED_URL5));
+
+			assertEquals(HTTPS_SERVER1_SIGNATURE,
+					getHttpResponse(proxiedHttpClient, PROXIED_URL6));
+
+			// https2http
+			assertEquals(HTTP_SERVER4_SIGNATURE,
+					getHttpResponse(proxiedHttpClient, PROXIED_URL7));
+
+			assertEquals(HTTP_SERVER5_SIGNATURE,
+					getHttpResponse(proxiedHttpClient, PROXIED_URL8));
+
+			assertEquals(HTTP_SERVER1_SIGNATURE,
+					getHttpResponse(proxiedHttpClient, PROXIED_URL9));
+			assertEquals(HTTP_SERVER1_SIGNATURE,
+					getHttpResponse(proxiedHttpClient, PROXIED_URL10));
+
+		} finally {
+			mapper.loadMappings(defaultMappings);
+		}
 	}
-	
+
 	@Test
-	public void testManagementOps()throws Exception{
+	public void testRequestUriSurvival() throws Exception {
+		String uri = "/test?url=http%3A%2F%2Fxyz.com%3A6001%2Fapp%2Findex.do";
+		getHttpResponse(proxiedHttpClient, PROXIED_URL1 + uri);
+		recorder.assertUrl(PROXIED_URL1 + uri);
+
+		getHttpResponse(proxiedHttpClient, PROXIED_URL2 + uri);
+		recorder.assertUrl(PROXIED_URL2 + uri);
+		getHttpResponse(proxiedHttpClient, PROXIED_URL3 + uri);
+		recorder.assertUrl(PROXIED_URL3 + uri);
+		getHttpResponse(proxiedHttpClient, PROXIED_URL4 + uri);
+		recorder.assertUrl(PROXIED_URL4 + uri);
+		getHttpResponse(proxiedHttpClient, PROXIED_URL5 + uri);
+		recorder.assertUrl(PROXIED_URL5 + uri);
+		getHttpResponse(proxiedHttpClient, PROXIED_URL6 + uri);
+		recorder.assertUrl(PROXIED_URL6 + uri);
+		getHttpResponse(proxiedHttpClient, PROXIED_URL7 + uri);
+		recorder.assertUrl((PROXIED_URL7 + uri).replace("https:", "http:"));
+		getHttpResponse(proxiedHttpClient, PROXIED_URL8 + uri);
+		recorder.assertUrl((PROXIED_URL8 + uri).replace("https:", "http:"));
+		getHttpResponse(proxiedHttpClient, PROXIED_URL9 + uri);
+		recorder.assertUrl((PROXIED_URL9 + uri).replace("https:", "http:"));
+		getHttpResponse(proxiedHttpClient, PROXIED_URL10 + uri);
+		recorder.assertUrl((PROXIED_URL10 + uri).replace("https:", "http:"));
+
+	}
+
+	@Test
+	public void testManagementOps() throws Exception {
 		Gson gson = new Gson();
-		
-		//GET
-		String response = getHttpResponse(directHttpClient, "http://localhost:"+managementPort+"/addressmap");
+
+		// GET
+		String response = getHttpResponse(directHttpClient, "http://localhost:"
+				+ managementPort + "/addressmap");
 		assertNotNull(response);
 		Map<String, String> map = gson.fromJson(response, HashMap.class);
 		assertEquals(mapper.getMappings(), map);
-		
-		//PUT
+
+		// PUT
 		final String original = "http://origin.com";
 		final String replacement = "http://replacement.com";
-		
-		
+
 		assertNull(mapper.getMappings().get(original));
-		assertNull(mapper.getReplacementAddress(AddressMapper.fromUrl(original)));
-		response = getHttpResponse(directHttpClient, new HttpPut("http://localhost:"+managementPort+"/addressmap/"+original+"/"+replacement));
+		assertNull(mapper
+				.getReplacementAddress(AddressMapper.fromUrl(original)));
+		response = getHttpResponse(directHttpClient, new HttpPut(
+				"http://localhost:" + managementPort + "/addressmap/"
+						+ original + "/" + replacement));
 		assertNotNull(response);
 		map = gson.fromJson(response, HashMap.class);
 		assertEquals(mapper.getMappings(), map);
 		assertNotNull(mapper.getMappings().get(original));
-		assertNotNull(mapper.getReplacementAddress(AddressMapper.fromUrl(original)));
-		assertEquals(replacement, mapper.getReplacementAddress(AddressMapper.fromUrl(original)).toString());
+		assertNotNull(mapper.getReplacementAddress(AddressMapper
+				.fromUrl(original)));
+		assertEquals(replacement,
+				mapper.getReplacementAddress(AddressMapper.fromUrl(original))
+						.toString());
 
-		//DELETE
-		response = getHttpResponse(directHttpClient, new HttpDelete("http://localhost:"+managementPort+"/addressmap/"+original));
+		// DELETE
+		response = getHttpResponse(directHttpClient, new HttpDelete(
+				"http://localhost:" + managementPort + "/addressmap/"
+						+ original));
 		assertNotNull(response);
 		map = gson.fromJson(response, HashMap.class);
 		assertEquals(mapper.getMappings(), map);
 		assertNull(mapper.getMappings().get(original));
-		assertNull(mapper.getReplacementAddress(AddressMapper.fromUrl(original)));
-		
-		
-		//TODO: not happy scenarios
+		assertNull(mapper
+				.getReplacementAddress(AddressMapper.fromUrl(original)));
+
+		// TODO: not happy scenarios
 	}
-	
 
 }
