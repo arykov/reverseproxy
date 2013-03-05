@@ -226,7 +226,7 @@ public class Launcher {
 		System.out
 				.println("\t<propertyFile> - location to the file that contains settings.  If not specified none will be used.");
 		System.out
-				.println("\t<filterClassName> - Fully qualified name of a class that implements com.ryaltech.tools.proxy.HttpRequestFilter. For example filter.WebLogicSsl. Default filter implementation will not affect requests.");
+				.println("\t<filterClassName> - Fully qualified name of a class that implements com.ryaltech.tools.proxy.HttpRequestFilter. For example filters.WebLogicSsl. Default filter implementation will not affect requests.");
 	}
 
 }
