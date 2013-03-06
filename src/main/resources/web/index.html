@@ -1,66 +1,87 @@
-
+<!DOCTYPE html>
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <title>Manage proxy</title>
 <style type="text/css">
+button{
+	width: 70px;
+}
+.title {
+	font-weight: bold;
+}
 .left {
 	float: left;
-	width: 210px;
+	min-width: 350px;
 }
-
 .middle {
 	float: none;
 }
 
-.right {
+.right {    
 	float: right;
+	margin-left: 5px;
 }
 
 .table {
-	width: 450px;
+    min-width: 600px;
+    display: table;
 }
+
 </style>
-<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
-<script type="text/javascript">    
-	$(document).ready(function() {		
-		$('#submitbtn').click(function(){			
+<script src="jquery.min.js"></script>
+<script type="text/javascript">
+	$(document).ready(function() {
+		$('#submitbtn').click(function(){
 			$.ajax({
 				     url:'/addressmap/'+$('#from').val()+'/'+$('#to').val(),
 				     type: 'PUT',
-				     error:  function (xhr, ajaxOptions, thrownError) {				         
+				     error:  function (xhr, ajaxOptions, thrownError) {
 				         alert('Failed due to:'+ thrownError);
 				       }
 				   }).done(function(mappings){showMappings(mappings);});
 		});
 		//load original mappings
-	
+
 		$.ajax({
 			     url:'/addressmap/',
-			     error:  function (xhr, ajaxOptions, thrownError) {				         
+			     error:  function (xhr, ajaxOptions, thrownError) {
 			         alert('Failed due to:'+ thrownError);
 			       }
 			  }).done(function(mappings){showMappings(mappings);});
-		
+
 	});
-	
+
 	function removeMapping(url){
 		$.ajax({
 			     url:'/addressmap/'+url,
 			     type: 'DELETE',
-			     error:  function (xhr, ajaxOptions, thrownError) {				         
+			     error:  function (xhr, ajaxOptions, thrownError) {
 				         alert('Failed due to:'+ thrownError);
 				       }
 			  }).done(function(mappings){showMappings(mappings);});
 	}
 	function showMappings(strMappings){
 		var mappings = jQuery.parseJSON(strMappings);
-		var mappingsDiv = $('#mappings');		
+		var mappingsDiv = $('#mappings');
 		mappingsDiv.empty();
+		var keys = new Array();
+		var i=0;
 		for(var from in mappings) {
+		  keys[i++]=from;
+		}
+		var orderedFromKeys=keys.sort(function(a, b) {
+		
+		  var comparison = a.replace('https://', 'http://').localeCompare( b.replace('https://', 'http://'));
+		  if(comparison == 0){
+		    return a.localeCompare(b);
+		  }else return comparison;
+		});
+		for(var index in orderedFromKeys) {
+		    var from = orderedFromKeys[index];
 			var to = mappings[from];
 		    mappingsDiv.append('<span class="left">'+from+'</span>');
-		    mappingsDiv.append('<span class="middle">'+to+'</span>');  		    	    
+		    mappingsDiv.append('<span class="middle">'+to+'</span>');
 		    mappingsDiv.append('<button class="right" onclick="removeMapping('+"'"+from+"'"+');">Remove</button>');
 		    mappingsDiv.append('<br></br>');
 		}
@@ -71,14 +92,12 @@
 
 
 	<div class="table">
-		<span class="left">From</input>
-		</span> <span class="middle">To</input></span>
-
+		<span class="left"><span class="title">From</span></span> 
+		<span class="middle"><span class="title">To</span></span>
 		<div id="mappings"></div>
 		<span class="left"><input type="text" id="from"></input> </span>
 		<span class="middle"><input type="text" id="to"></input></span>
 		<button id="submitbtn" class="right">Submit</button>
-
 	</div>
 
 </body>
