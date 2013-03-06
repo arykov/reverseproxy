@@ -106,6 +106,7 @@ public class Launcher {
 		
 		try {
 			startServer(proxyPort, managementPort, filter, props);
+			System.out.println("Server started ...");
 		} catch (Exception ex) {
 			ex.printStackTrace();
 			System.exit(-1);
