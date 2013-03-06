@@ -21,4 +21,8 @@ REST API:
  * To remove address mapping use HTTP DELETE http://localhost:[managementPort]/addressmap/from. For example: _http://localhost:[managementPort]/addressmap/http://cnn.com_
  * To get current configuration use HTTP GET http://localhost:[managementPort]/addressmap
  
+ 
+Known limitations:
+ * Chunked transfer encoding not currently supported
+ * Proxy chaining is not supported 
 

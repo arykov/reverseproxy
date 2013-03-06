@@ -1,15 +1,19 @@
 package com.ryaltech.tools.proxy;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
@@ -24,10 +28,12 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import javax.servlet.Servlet;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
@@ -53,7 +59,6 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.littleshoot.proxy.KeyStoreManager;
 import org.littleshoot.proxy.SelfSignedKeyStoreManager;
@@ -165,7 +170,6 @@ public class IntegrationTest {
 	public static void startServers() throws Exception {
 		httpServer1 = startHttpJetty(new TestHttpServlet(
 				HTTP_SERVER1_SIGNATURE, recorder));
-		
 
 		httpServer2 = startHttpJetty(new TestHttpServlet(
 				HTTP_SERVER2_SIGNATURE, recorder));
@@ -511,45 +515,84 @@ public class IntegrationTest {
 
 	}
 
-	@Ignore
 	@Test
-	public void testMultiPart() throws Exception{
+	public void testMultiPart()throws Exception {
 
-		//add servlet
-		ServletContextHandler handler = (ServletContextHandler)httpServer1.getHandler();
+		// add servlet and filter
+		addFileCapabilities(httpServer1);
+		addFileCapabilities(httpsServer1);
+		addFileCapabilities(httpServer3);
+		byte[] smallData = "Hello".getBytes();
+		byte[] largeData = new byte[1000000];
 
-		handler.setAttribute("javax.servlet.context.tempdir", new File(System.getProperty("java.io.tmpdir")));
-		handler.addServlet(FileServlet.class, "/file");
-		handler.addFilter(MultiPartFilter.class,"/file", null);
-
-		
-		HttpPost post = new HttpPost("http://localhost:"+getServerPort(httpServer1)+"/file");
-
-		MultipartEntity entity = new MultipartEntity();
-		entity.addPart("file", new ByteArrayBody("Hello world".getBytes(), "myfile"));
-		post.setEntity(entity);	
-		
-		String fileName = getHttpResponse(directHttpClient, post);
-		
-		//TODO: verify
-		URI requestUri = new URI("http://localhost:"+getServerPort(httpServer1)+"/file?file="+fileName.replace('\\', '/'));
-		HttpGet httpget = new HttpGet(requestUri.toURL().toString());
-		
-		
-		HttpResponse response = directHttpClient.execute(httpget);
-		HttpEntity responseEntity = response.getEntity();
-		if (entity != null) {
-		    long len = responseEntity.getContentLength();
-		    InputStream inputStream = responseEntity.getContent();
-		    byte [] buffer = new byte[(int)len];
-		    IOUtils.read(inputStream, buffer);
-		    System.out.println(new String(buffer));
-		    //TODO: verify
-
-		}
-		//TODO: delete file
+		//direct
+		testMultiPart(directHttpClient, "http://localhost:" + getServerPort(httpServer1)+"/file", smallData);
+		//proxied no alias
+		testMultiPart(proxiedHttpClient, "http://localhost:" + getServerPort(httpServer1)+"/file", smallData);
+		//proxied http2http
+		testMultiPart(proxiedHttpClient, PROXIED_URL1+"/file", smallData);
+		//proxied https2https
+		testMultiPart(proxiedHttpClient, PROXIED_URL4+"/file", smallData);
+		//proxied https2http
+		testMultiPart(proxiedHttpClient, PROXIED_URL7+"/file", smallData);
 		
 	}
+
+	private void testMultiPart(HttpClient client, String fileUrl, byte [] data) throws IOException,
+			NoSuchAlgorithmException, UnsupportedEncodingException,
+			ClientProtocolException {
+		HttpPost post = new HttpPost(fileUrl);
+		
+		MultipartEntity entity = new MultipartEntity();
+		entity.addPart("file", new ByteArrayBody(data, "myfile"));
+		post.setEntity(entity);
+
+		File uploadedFile = null;
+		InputStream inputStream = null;
+		try {
+			String fileName = getHttpResponse(client, post);
+			assertNotNull(fileName);
+			
+
+			uploadedFile = new File(fileName);
+			assertTrue(uploadedFile.exists());
+			assertTrue(uploadedFile.isFile());
+			
+			byte[] uploadedFileContents = FileUtils
+					.readFileToByteArray(new File(fileName));
+			assertArrayEquals(data, uploadedFileContents);
+
+			String downloadUrl = fileUrl + "?file="
+					+ URLEncoder.encode(fileName, "ISO-8859-1");
+			HttpGet httpget = new HttpGet(downloadUrl);
+
+			HttpResponse response = client.execute(httpget);
+			HttpEntity responseEntity = response.getEntity();
+			if (entity != null) {
+				inputStream = responseEntity.getContent();
+				byte[] downloadedFile = new byte[data.length];
+				int readBytes = IOUtils.read(inputStream, downloadedFile);
+				assertEquals(data.length, readBytes);
+				assertArrayEquals(data, downloadedFile);
+
+			}
+		} finally {
+			FileUtils.deleteQuietly(uploadedFile);
+			IOUtils.closeQuietly(inputStream);
+
+		}
+	}
+
+	private void addFileCapabilities(Server server) {
+		ServletContextHandler handler = (ServletContextHandler) server
+				.getHandler();
+
+		handler.setAttribute("javax.servlet.context.tempdir",
+				new File(System.getProperty("java.io.tmpdir")));
+		handler.addServlet(FileServlet.class, "/file");
+		handler.addFilter(MultiPartFilter.class, "/file", null);
+	}
+
 	@Test
 	public void testManagementOps() throws Exception {
 		Gson gson = new Gson();
