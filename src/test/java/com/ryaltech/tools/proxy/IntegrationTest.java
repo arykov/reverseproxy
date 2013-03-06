@@ -5,10 +5,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.URL;
+import java.net.URI;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
@@ -22,13 +23,15 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import javax.servlet.Servlet;
-import javax.servlet.http.HttpServletRequest;
 
+import org.apache.commons.io.IOUtils;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.conn.ClientConnectionManager;
@@ -36,17 +39,21 @@ import org.apache.http.conn.params.ConnRoutePNames;
 import org.apache.http.conn.scheme.Scheme;
 import org.apache.http.conn.scheme.SchemeRegistry;
 import org.apache.http.conn.ssl.SSLSocketFactory;
+import org.apache.http.entity.mime.MultipartEntity;
+import org.apache.http.entity.mime.content.ByteArrayBody;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ssl.SslSocketConnector;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.servlets.MultiPartFilter;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.littleshoot.proxy.KeyStoreManager;
 import org.littleshoot.proxy.SelfSignedKeyStoreManager;
@@ -158,6 +165,7 @@ public class IntegrationTest {
 	public static void startServers() throws Exception {
 		httpServer1 = startHttpJetty(new TestHttpServlet(
 				HTTP_SERVER1_SIGNATURE, recorder));
+		
 
 		httpServer2 = startHttpJetty(new TestHttpServlet(
 				HTTP_SERVER2_SIGNATURE, recorder));
@@ -261,6 +269,7 @@ public class IntegrationTest {
 			throws IOException, NoSuchAlgorithmException {
 
 		HttpResponse response = httpClient.execute(request);
+		assertEquals(200, response.getStatusLine().getStatusCode());
 		StringBuffer textView = new StringBuffer();
 		BufferedReader rd = new BufferedReader(new InputStreamReader(response
 				.getEntity().getContent()));
@@ -502,6 +511,45 @@ public class IntegrationTest {
 
 	}
 
+	@Ignore
+	@Test
+	public void testMultiPart() throws Exception{
+
+		//add servlet
+		ServletContextHandler handler = (ServletContextHandler)httpServer1.getHandler();
+
+		handler.setAttribute("javax.servlet.context.tempdir", new File(System.getProperty("java.io.tmpdir")));
+		handler.addServlet(FileServlet.class, "/file");
+		handler.addFilter(MultiPartFilter.class,"/file", null);
+
+		
+		HttpPost post = new HttpPost("http://localhost:"+getServerPort(httpServer1)+"/file");
+
+		MultipartEntity entity = new MultipartEntity();
+		entity.addPart("file", new ByteArrayBody("Hello world".getBytes(), "myfile"));
+		post.setEntity(entity);	
+		
+		String fileName = getHttpResponse(directHttpClient, post);
+		
+		//TODO: verify
+		URI requestUri = new URI("http://localhost:"+getServerPort(httpServer1)+"/file?file="+fileName.replace('\\', '/'));
+		HttpGet httpget = new HttpGet(requestUri.toURL().toString());
+		
+		
+		HttpResponse response = directHttpClient.execute(httpget);
+		HttpEntity responseEntity = response.getEntity();
+		if (entity != null) {
+		    long len = responseEntity.getContentLength();
+		    InputStream inputStream = responseEntity.getContent();
+		    byte [] buffer = new byte[(int)len];
+		    IOUtils.read(inputStream, buffer);
+		    System.out.println(new String(buffer));
+		    //TODO: verify
+
+		}
+		//TODO: delete file
+		
+	}
 	@Test
 	public void testManagementOps() throws Exception {
 		Gson gson = new Gson();
