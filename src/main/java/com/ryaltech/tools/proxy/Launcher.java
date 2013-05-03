@@ -23,14 +23,14 @@ import org.littleshoot.proxy.SelfSignedKeyStoreManager;
 
 public class Launcher {
 	/**
-	 * 
+	 *
 	 * @return any available listen port
 	 * @throws RuntimeException
 	 */
 	public static int getAnyAvailablePort()throws RuntimeException{
-		ServerSocket socket = null;		
+		ServerSocket socket = null;
 		try {
-			socket = new ServerSocket(0);			
+			socket = new ServerSocket(0);
 			return socket.getLocalPort();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
@@ -38,10 +38,10 @@ public class Launcher {
 			try {
 				if(socket != null)socket.close();
 			} catch (IOException e) {
-			}		
+			}
 		}
-		
-		
+
+
 	}
 	/**
 	 * Checks if listening on the port is possible.
@@ -50,7 +50,7 @@ public class Launcher {
 	 */
 	static void validatePortIsAvailable(int port)throws RuntimeException{
 		ServerSocket socket = null;
-		try{			
+		try{
 			socket = new ServerSocket(port);
 		} catch (IOException e) {
 			throw new RuntimeException(String.format("Cannot listen on port %s. It is likely busy.", port), e);
@@ -58,23 +58,23 @@ public class Launcher {
 			try {
 				if(socket != null)socket.close();
 			} catch (IOException e) {
-			}		
+			}
 		}
 	}
 
 	public static final int DEFAULT_HTTP_PROXY_PORT = 8080;
 	/**
 	 * @param args
-	 * @throws UnknownHostException 
+	 * @throws UnknownHostException
 	 */
 	public static void main(String[] args) throws UnknownHostException {
 
 		int proxyPort=DEFAULT_HTTP_PROXY_PORT;
 		int managementPort=-1;
 		HttpRequestFilter filter = new NopRequestFilter();
-		
+
 		Properties props = new Properties();
-		
+
 		int i=0;
 
 		try {
@@ -85,9 +85,9 @@ public class Launcher {
 				} else if (flag.equals("-mp")) {
 					managementPort = Integer.parseInt(args[++i]);
 				} else if (flag.equals("-pf")) {
-					props = readProperties(args[++i]);					
+					props = readProperties(args[++i]);
 				}else if (flag.equals("-f")) {
-					filter = (HttpRequestFilter)Class.forName(args[++i]).newInstance();					
+					filter = (HttpRequestFilter)Class.forName(args[++i]).newInstance();
 				}
 
 				else {
@@ -102,8 +102,8 @@ public class Launcher {
 			ex.printStackTrace();
 			System.exit(-1);
 		}
-    
-		
+
+
 		try {
 			startServer(proxyPort, managementPort, filter, props);
 			System.out.println("Server started ...");
@@ -118,7 +118,7 @@ public class Launcher {
 		Properties props = new Properties();
 		BufferedReader br = new BufferedReader(new FileReader(fileName));
 		try {
-			
+
 			String line = br.readLine();
 			while(line != null){
 				String [] chunks = line.split("=");
@@ -127,18 +127,18 @@ public class Launcher {
 				}
 				line = br.readLine();
 			}
-			
+
 		} finally {
 			br.close();
 		}
 		return props;
-		
+
 	}
 
 	static HttpProxyServer httpsServer;
 	static HttpProxyServer httpServer;
 	static Server managementServer;
-	static AddressMapper startServer(int proxyPort, int managementPort, HttpRequestFilter filter, Properties props)
+	public static AddressMapper startServer(int proxyPort, int managementPort, HttpRequestFilter filter, Properties props)
 			throws UnknownHostException {
 		int httpsProxyPort;
 		try{
@@ -148,23 +148,23 @@ public class Launcher {
 			System.exit(-1);
 			return null;
 		}
-		
+
 	    AddressMapper mapper = new AddressMapper(httpsProxyPort);
-	    
-	    
+
+
 	    try{
-	    	mapper.loadMappings(props); 
+	    	mapper.loadMappings(props);
 	    }catch(RuntimeException rex){
 	    	System.out.println("Invalid mapping properties."+props.toString());
-	    	System.exit(-1);	    		
-	    }	    	
-        
+	    	System.exit(-1);
+	    }
+
 		httpsServer = new DefaultHttpProxyServer(httpsProxyPort,
-				(HttpResponseFilters)null, null, 
+				(HttpResponseFilters)null, null,
 	            new SelfSignedKeyStoreManager(), null, new NioClientSocketChannelFactory(), new HashedWheelTimer(), new ServerSocketChannelFactory(new AddressReplacingChannelHandler(mapper, filter, true)));
 		httpsServer.start();
-		final HttpProxyServer httpServer = new DefaultHttpProxyServer(proxyPort, 
-	            (HttpResponseFilters)null, null, 
+		final HttpProxyServer httpServer = new DefaultHttpProxyServer(proxyPort,
+	            (HttpResponseFilters)null, null,
 	            null, null,new NioClientSocketChannelFactory(), new HashedWheelTimer(), new ServerSocketChannelFactory(new AddressReplacingChannelHandler(mapper, filter, false)));
 		httpServer.start();
 		if(managementPort > 0){
@@ -172,24 +172,24 @@ public class Launcher {
 		}
 		return mapper;
 	}
-	
+
 	static Server startManagementServer(int port, AddressMapper mapper){
 		Servlet servlet = new AddressMapperManagementServlet(mapper);
-	
+
 		Server server = new Server(port);
-		
-		ServletContextHandler servletHandler = new ServletContextHandler();	
+
+		ServletContextHandler servletHandler = new ServletContextHandler();
 		servletHandler.setContextPath("/addressmap");
-		
-		servletHandler.addServlet(new ServletHolder(servlet), "/*");		
+
+		servletHandler.addServlet(new ServletHolder(servlet), "/*");
 		ResourceHandler resourceHandler = new ResourceHandler();
 		resourceHandler.setDirectoriesListed(false);
 		resourceHandler.setWelcomeFiles(new String[] { "index.html" });
 
-		
-		try {			
+
+		try {
 			resourceHandler.setResourceBase(Launcher.class.getResource("/web").toURI().toString());
-			HandlerList list = new HandlerList();			
+			HandlerList list = new HandlerList();
 			list.addHandler(servletHandler);
 			list.addHandler(resourceHandler);
 			server.setHandler(list);
@@ -203,7 +203,7 @@ public class Launcher {
 
 	}
 
-	static void stopServer(){
+	public static void stopServer(){
 		if(httpServer != null)
 			httpServer.stop();
 		if(httpsServer != null)
@@ -212,11 +212,11 @@ public class Launcher {
 			try{
 				managementServer.stop();
 			}catch(Exception ex){}
-		
+
 	}
 
 	private static void help() {
-		
+
 		System.out
 				.println("java -classpath " + Launcher.class.getProtectionDomain().getCodeSource().getLocation().getFile()+ " " +Launcher.class.getCanonicalName()+" [-pp <proxyPort>] [-mp <managementPort>] [-pf <propertyFile>] [-f <filterClassName>]");
 		System.out
