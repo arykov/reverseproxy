@@ -1,7 +1,7 @@
 Reverse Proxy
 ============
 
-Testing clustered application deployment requires testing of each instance of an application. Typically this is achieved by hitting each deployment's IP and port directly. Unfortunately some applications and infrastructure components are seneitive to address part of http request. 
+Testing clustered application deployment requires testing of each instance of an application. Typically this is achieved by hitting each deployment's IP and port directly. Unfortunately some applications and infrastructure components are sensitive to address part of http request. 
 
 To deal with this reverse proxy associates a DNS name with specific IP:port combination. It is implemented as an http proxy to allow browsers and scripts to continue working as if with a normal setup. DNS - IP associations can be changed on the fly using simple RESTful API and a simple web console. Proxy supports http2http, https2http and https2https associations.
 
